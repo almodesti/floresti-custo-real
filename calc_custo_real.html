@@ -1,0 +1,2353 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Custo Real — FLORESTi</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500&family=Outfit:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+<style>
+:root {
+  --bg: #F2F1F0; --white: #fff; --primary: #0D362E; --accent: #957561;
+  --text: #1A1A18; --muted: #4A4A45; --border: #D6D0C8;
+  --green-lt: #E1F5EE; --amber-lt: #FAEEDA; --green-mid: #0F6E56;
+  --red: #C0392B; --red-lt: #FDECEA;
+  --font: 'Outfit', sans-serif; --font-head: 'Poppins', sans-serif; --font-mono: 'JetBrains Mono', monospace;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: var(--font); font-size: 14px; }
+a { color: inherit; }
+
+/* ── HEADER ── */
+.hdr { background: var(--primary); color: #fff; padding: 0 1.5rem; display: flex; align-items: center; justify-content: space-between; height: 52px; }
+.hdr-brand { display: flex; align-items: baseline; gap: .5rem; }
+.hdr-logo { font-family: var(--font-head); font-weight: 300; font-size: 1.1rem; letter-spacing: .05em; }
+.hdr-sub { font-size: .7rem; font-weight: 500; letter-spacing: .15em; text-transform: uppercase; color: var(--accent); }
+.hdr-actions { display: flex; gap: .5rem; }
+
+/* ── NAV TABS ── */
+.nav { background: var(--white); border-bottom: 1px solid var(--border); display: flex; overflow-x: auto; scrollbar-width: none; }
+.nav::-webkit-scrollbar { display: none; }
+.nav-btn { border: none; background: none; padding: .6rem .9rem; cursor: pointer; font-family: var(--font); font-size: .78rem; font-weight: 500; color: var(--muted); white-space: nowrap; border-bottom: 2px solid transparent; transition: color .15s, border-color .15s; }
+.nav-btn:hover { color: var(--primary); }
+.nav-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+/* ── LAYOUT ── */
+.main { max-width: 980px; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
+.section { display: none; }
+.section.active { display: block; }
+
+/* ── CARDS ── */
+.card { background: var(--white); border-radius: 6px; border-top: 3px solid var(--primary); box-shadow: 0 2px 8px rgba(13,54,46,.08); margin-bottom: 1rem; }
+.card.amber { border-top-color: var(--accent); }
+.card-head { padding: .8rem 1.2rem .4rem; display: flex; align-items: center; justify-content: space-between; }
+.card-title { font-family: var(--font-head); font-weight: 500; font-size: .95rem; color: var(--primary); }
+.card-body { padding: .8rem 1.2rem 1.2rem; }
+
+/* ── FORMS ── */
+.form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: .6rem 1rem; }
+.form-grid.wide { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+.fg { display: flex; flex-direction: column; gap: .2rem; }
+.fg label { font-size: .7rem; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.fg input, .fg select, .fg textarea {
+  border: 1px solid var(--border); border-radius: 4px; padding: .4rem .6rem;
+  font-family: var(--font); font-size: .85rem; color: var(--text);
+  background: #fff; transition: border-color .15s;
+}
+.fg input:focus, .fg select:focus, .fg textarea:focus { outline: none; border-color: var(--primary); }
+.fg .computed { background: var(--green-lt); border-color: transparent; font-family: var(--font-mono); font-size: .82rem; color: var(--green-mid); cursor: default; }
+.fg .computed.amber { background: var(--amber-lt); color: #854F0B; }
+.form-actions { display: flex; gap: .5rem; margin-top: .9rem; align-items: center; flex-wrap: wrap; }
+.form-hint { font-size: .72rem; color: var(--muted); margin-left: auto; }
+
+/* ── BUTTONS ── */
+.btn { border: none; border-radius: 4px; padding: .4rem .9rem; cursor: pointer; font-family: var(--font); font-size: .82rem; font-weight: 600; transition: opacity .15s; }
+.btn:hover { opacity: .85; }
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-secondary { background: transparent; border: 1px solid var(--border); color: var(--muted); }
+.btn-danger { background: transparent; border: 1px solid var(--red); color: var(--red); }
+.btn-sm { font-size: .75rem; padding: .3rem .7rem; }
+.btn-link { background: none; border: none; color: var(--primary); cursor: pointer; font-size: .8rem; text-decoration: underline; padding: 0; font-family: var(--font); }
+.btn-xs { font-size: .7rem; padding: .2rem .5rem; border-radius: 3px; }
+.btn-outline { background: transparent; border: 1px solid rgba(255,255,255,.4); color: #fff; }
+.btn-outline:hover { border-color: #fff; }
+
+/* ── TABLES ── */
+.tbl-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+thead th { text-align: left; padding: .5rem .7rem; font-size: .68rem; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); border-bottom: 1px solid var(--border); }
+tbody td { padding: .45rem .7rem; border-bottom: 1px solid #f0ede8; vertical-align: middle; }
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover { background: #f8f7f5; cursor: pointer; }
+.tbl-empty { text-align: center; padding: 2rem; color: var(--muted); font-size: .82rem; }
+.mono { font-family: var(--font-mono); }
+
+/* ── BADGES ── */
+.badge { display: inline-block; padding: .15rem .45rem; border-radius: 3px; font-family: var(--font-mono); font-size: .75rem; font-weight: 400; }
+.badge-green { background: var(--green-lt); color: var(--green-mid); }
+.badge-amber { background: var(--amber-lt); color: #854F0B; }
+.badge-red   { background: var(--red-lt); color: var(--red); }
+.badge-gray  { background: #eee; color: var(--muted); }
+.badge-primary { background: #e0ede9; color: var(--primary); }
+.pos { color: var(--green-mid); font-weight: 600; }
+.neg { color: var(--red); font-weight: 600; }
+
+/* ── ALERTS ── */
+.alert { border-radius: 4px; padding: .6rem .9rem; font-size: .82rem; margin-bottom: .5rem; display: flex; align-items: flex-start; gap: .5rem; }
+.alert-warn { background: #FEF9E7; border-left: 3px solid #F0B429; color: #7B6000; }
+.alert-ok   { background: var(--green-lt); border-left: 3px solid var(--green-mid); color: var(--primary); }
+.alert-info { background: #EEF2FF; border-left: 3px solid #5B5EF4; color: #2D2D8E; }
+
+/* ── DASHBOARD GRID ── */
+.dash-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+.kpi { background: var(--white); border-radius: 6px; padding: 1rem 1.2rem; border-top: 3px solid var(--primary); box-shadow: 0 2px 8px rgba(13,54,46,.08); }
+.kpi-label { font-size: .68rem; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: .3rem; }
+.kpi-value { font-family: var(--font-mono); font-size: 1.3rem; font-weight: 400; color: var(--primary); }
+.kpi-sub { font-size: .72rem; color: var(--muted); margin-top: .2rem; }
+
+/* ── ITEMS TABLE (dentro do form pedido) ── */
+.items-tbl { width: 100%; border-collapse: collapse; font-size: .8rem; margin-top: .5rem; }
+.items-tbl th { font-size: .65rem; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); padding: .3rem .4rem; border-bottom: 1px solid var(--border); text-align: left; }
+.items-tbl td { padding: .3rem .4rem; border-bottom: 1px solid #f0ede8; }
+.items-tbl td input { width: 100%; border: 1px solid var(--border); border-radius: 3px; padding: .2rem .4rem; font-size: .8rem; font-family: var(--font); }
+.items-tbl td input:focus { outline: none; border-color: var(--primary); }
+.items-row-total { background: #f8f7f5; font-weight: 600; }
+
+/* ── SECTION TITLES ── */
+.sec-title { font-family: var(--font-head); font-weight: 500; font-size: 1.2rem; color: var(--primary); margin-bottom: 1rem; display: flex; align-items: center; gap: .5rem; }
+.sec-title .tag { font-size: .65rem; font-weight: 600; text-transform: uppercase; letter-spacing: .12em; color: var(--accent); font-family: var(--font); }
+
+/* ── DETAIL BOXES ── */
+.detail-box { background: var(--bg); border: 1px solid var(--border); border-radius: 4px; padding: .7rem 1rem; font-size: .8rem; display: grid; grid-template-columns: 1fr 1fr; gap: .3rem .8rem; }
+.detail-box dt { color: var(--muted); }
+.detail-box dd { font-family: var(--font-mono); text-align: right; }
+
+/* ── TABS WITHIN FORM ── */
+.inline-sep { border: none; border-top: 1px solid var(--border); margin: .8rem 0; }
+
+/* ── MODAL ── */
+.modal-bg { position:fixed; inset:0; background:rgba(0,0,0,.45); display:flex; align-items:center; justify-content:center; z-index:1000; }
+.modal-box { background:#fff; border-radius:8px; border-top:3px solid var(--primary); max-width:700px; width:94vw; max-height:82vh; display:flex; flex-direction:column; box-shadow:0 8px 32px rgba(0,0,0,.25); }
+.modal-head { padding:.8rem 1.2rem; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
+.modal-title { font-family:var(--font-head); font-weight:500; color:var(--primary); font-size:.95rem; }
+.modal-body { padding:1rem 1.2rem; overflow-y:auto; flex:1; }
+.modal-foot { padding:.8rem 1.2rem; border-top:1px solid var(--border); display:flex; gap:.5rem; justify-content:flex-end; flex-shrink:0; }
+
+/* ── KPI 9 CARDS ── */
+.kpi9-periodo { display:flex; align-items:center; gap:.6rem; margin-bottom:1.2rem; flex-wrap:wrap; }
+.kpi9-periodo label { font-size:.7rem; font-weight:600; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); }
+.kpi9-periodo select { border:1px solid var(--border); border-radius:4px; padding:.3rem .6rem; font-family:var(--font); font-size:.82rem; color:var(--text); background:#fff; }
+.kpi9-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:.9rem; margin-bottom:1.5rem; }
+.kpi9-card { background:var(--white); border-radius:6px; border-top:3px solid var(--primary); box-shadow:0 2px 8px rgba(13,54,46,.08); padding:.9rem 1rem 1rem; display:flex; flex-direction:column; gap:.15rem; }
+.kpi9-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:.3rem; }
+.kpi9-num { font-family:var(--font-head); font-weight:300; font-size:1.5rem; color:var(--border); line-height:1; }
+.kpi9-conf { font-size:.62rem; font-weight:700; text-transform:uppercase; letter-spacing:.1em; padding:.15rem .4rem; border-radius:3px; white-space:nowrap; }
+.conf-solido    { background:#d4f0e3; color:#0a5c38; }
+.conf-parcial   { background:#faeeda; color:#7a4b00; }
+.conf-estimativa{ background:#fde8cc; color:#834d00; }
+.conf-sem-dado  { background:#eee; color:var(--muted); }
+.kpi9-pergunta { font-size:.72rem; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:.06em; line-height:1.3; }
+.kpi9-valor { font-family:var(--font-mono); font-size:1.4rem; color:var(--primary); margin-top:.3rem; line-height:1.1; }
+.kpi9-valor.sem-dado { font-size:.82rem; font-family:var(--font); color:var(--muted); }
+.kpi9-sub { font-size:.76rem; color:var(--muted); margin-top:.2rem; line-height:1.4; }
+.kpi9-sub strong { color:var(--text); }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 600px) {
+  .kpi9-grid { grid-template-columns: 1fr 1fr; }
+  .form-grid { grid-template-columns: 1fr; }
+  .dash-grid { grid-template-columns: 1fr 1fr; }
+  .hdr-actions .btn-sm span { display: none; }
+}
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <div class="hdr-brand">
+    <span class="hdr-logo">FLORESTi</span>
+    <span class="hdr-sub">Custo Real</span>
+  </div>
+  <div class="hdr-actions">
+    <button class="btn btn-sm btn-outline" onclick="exportJSON()">⬇ Exportar</button>
+    <label class="btn btn-sm btn-outline" style="cursor:pointer">⬆ Importar<input type="file" accept=".json" style="display:none" onchange="importJSON(this)"></label>
+  </div>
+</header>
+
+<nav class="nav" id="nav">
+  <button class="nav-btn active" onclick="showTab('painel')" data-tab="painel">Painel</button>
+  <button class="nav-btn" onclick="showTab('madeira')" data-tab="madeira">Madeira</button>
+  <button class="nav-btn" onclick="showTab('adesivo')" data-tab="adesivo">Adesivo</button>
+  <button class="nav-btn" onclick="showTab('pedidos')" data-tab="pedidos">Pedidos</button>
+<button class="nav-btn" onclick="showTab('est-mensal')" data-tab="est-mensal">Est. Mensal</button>
+  <button class="nav-btn" onclick="showTab('est-inicial')" data-tab="est-inicial">Est. Inicial</button>
+  <button class="nav-btn" onclick="showTab('margens')" data-tab="margens">Margens</button>
+  <button class="nav-btn" onclick="showTab('balanco')" data-tab="balanco">Balanço</button>
+  <button class="nav-btn" onclick="showTab('dados')" data-tab="dados">Dados</button>
+</nav>
+
+<main class="main">
+
+<!-- ════════════════ PAINEL ════════════════ -->
+<section class="section active" id="s-painel">
+  <div class="sec-title">Painel <span class="tag">9 KPIs da fábrica</span></div>
+  <div id="painel-alertas"></div>
+  <div class="kpi9-periodo">
+    <label>Período</label>
+    <select id="kpi-periodo" onchange="renderPainel()">
+      <option value="ano">Ano corrente</option>
+      <option value="mes">Mês corrente</option>
+      <option value="mes-ant">Mês anterior</option>
+      <option value="tri">Trimestre corrente</option>
+      <option value="tudo">Todo o histórico</option>
+    </select>
+    <span id="kpi-periodo-label" style="font-size:.75rem; color:var(--muted)"></span>
+  </div>
+  <div class="kpi9-grid" id="painel-kpis9"></div>
+  <div id="painel-ultimos"></div>
+</section>
+
+<!-- ════════════════ MADEIRA ════════════════ -->
+<section class="section" id="s-madeira">
+  <div class="sec-title">Compras de Madeira <span class="tag">Eucalipto bruto</span></div>
+  <div class="card">
+    <div class="card-head"><span class="card-title" id="title-madeira">Nova Compra</span></div>
+    <div class="card-body">
+      <form id="form-madeira" onsubmit="saveMadeira(event)">
+        <div class="form-grid">
+          <div class="fg"><label>Data Recebimento *</label><input type="date" id="cm-data" required></div>
+          <div class="fg"><label>Fornecedor *</label><input type="text" id="cm-fornecedor" required placeholder="Ex: Serraria São João"></div>
+          <div class="fg"><label>Nº NF</label><input type="text" id="cm-nf" placeholder="Ex: 00123"></div>
+          <div class="fg"><label>Volume m³ *</label><input type="number" id="cm-volume" step="0.001" min="0.001" required placeholder="0.000"></div>
+          <div class="fg"><label>Valor Total R$ *</label><input type="number" id="cm-valor" step="0.01" min="0" required placeholder="0.00"></div>
+          <div class="fg"><label>R$/m³ (calculado)</label><input class="computed" id="cm-rpm3" readonly value="—"></div>
+          <div class="fg"><label>Larguras (mm)</label><input type="text" id="cm-larguras" placeholder="Ex: 160, 180, 200"></div>
+          <div class="fg"><label>Data Pagamento</label><input type="date" id="cm-pagamento"></div>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">Salvar</button>
+          <button type="button" class="btn btn-secondary" onclick="cancelEdit('madeira')">Novo</button>
+          <button type="button" class="btn btn-danger" id="btn-del-madeira" style="display:none" onclick="deleteMadeira()">Excluir</button>
+          <span class="form-hint" id="hint-madeira"></span>
+        </div>
+      </form>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-head">
+      <span class="card-title">Histórico</span>
+      <span id="badge-preco-madeira" class="badge badge-green" style="font-size:.75rem"></span>
+    </div>
+    <div class="card-body" style="padding-top:0">
+      <div class="tbl-wrap"><div id="list-madeira"></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════ ADESIVO ════════════════ -->
+<section class="section" id="s-adesivo">
+  <div class="sec-title">Compras de Adesivo <span class="tag">TLP 40 — Birka</span></div>
+  <div class="card amber">
+    <div class="card-head"><span class="card-title" id="title-adesivo">Nova Compra</span></div>
+    <div class="card-body">
+      <form id="form-adesivo" onsubmit="saveAdesivo(event)">
+        <div class="form-grid">
+          <div class="fg"><label>Data Recebimento *</label><input type="date" id="ca-data" required></div>
+          <div class="fg"><label>Fornecedor *</label><input type="text" id="ca-fornecedor" required placeholder="Ex: Birka"></div>
+          <div class="fg"><label>Nº NF</label><input type="text" id="ca-nf" placeholder="Ex: 71"></div>
+          <div class="fg"><label>Produto</label>
+            <select id="ca-produto"><option value="TLP_40">TLP 40</option><option value="TLP_10">TLP 10</option></select>
+          </div>
+          <div class="fg"><label>Quantidade kg *</label><input type="number" id="ca-kg" step="0.1" min="0.1" required placeholder="0.0"></div>
+          <div class="fg"><label>Valor Total R$ *</label><input type="number" id="ca-valor" step="0.01" min="0" required placeholder="0.00"></div>
+          <div class="fg"><label>R$/kg (calculado)</label><input class="computed amber" id="ca-rpkg" readonly value="—"></div>
+          <div class="fg"><label>Data Pagamento</label><input type="date" id="ca-pagamento"></div>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">Salvar</button>
+          <button type="button" class="btn btn-secondary" onclick="cancelEdit('adesivo')">Novo</button>
+          <button type="button" class="btn btn-danger" id="btn-del-adesivo" style="display:none" onclick="deleteAdesivo()">Excluir</button>
+          <span class="form-hint" id="hint-adesivo"></span>
+        </div>
+      </form>
+    </div>
+  </div>
+  <div class="card amber">
+    <div class="card-head">
+      <span class="card-title">Histórico</span>
+      <span id="badge-preco-adesivo" class="badge badge-amber" style="font-size:.75rem"></span>
+    </div>
+    <div class="card-body" style="padding-top:0">
+      <div class="tbl-wrap"><div id="list-adesivo"></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════ PEDIDOS ════════════════ -->
+<section class="section" id="s-pedidos">
+  <div class="sec-title">Pedidos <span class="tag">MLC Eucalipto</span></div>
+  <div class="card">
+    <div class="card-head"><span class="card-title" id="title-pedido">Novo Pedido</span></div>
+    <div class="card-body">
+      <form id="form-pedido" onsubmit="savePedido(event)">
+        <div class="form-grid wide">
+          <div class="fg"><label>Nº Orçamento *</label><input type="text" id="p-orcamento" required placeholder="Ex: 1863"></div>
+          <div class="fg"><label>Cliente *</label><input type="text" id="p-cliente" required></div>
+          <div class="fg"><label>Local da Obra</label><input type="text" id="p-local"></div>
+          <div class="fg"><label>Espécie</label><input type="text" id="p-especie" value="Eucalipto" readonly style="background:#f8f7f5"></div>
+          <div class="fg"><label>Data Entrega</label><input type="date" id="p-entrega"></div>
+          <div class="fg"><label>Valor Venda R$ *</label><input type="number" id="p-valor" step="0.01" min="0" required placeholder="0.00"></div>
+          <div class="fg"><label>m³ Aplainado (calculado)</label><input class="computed" id="p-m3" readonly value="0.000 m³"></div>
+          <div class="fg"><label>Data Sinal Recebido</label><input type="date" id="p-sinal"></div>
+          <div class="fg"><label>Data Pagto. Final</label><input type="date" id="p-final"></div>
+        </div>
+        <div class="fg" style="margin-top:.6rem"><label>Observações</label><textarea id="p-obs" rows="2" style="resize:vertical"></textarea></div>
+
+        <hr class="inline-sep">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:.5rem">
+          <strong style="font-size:.8rem; color:var(--primary)">Itens do Pedido</strong>
+          <button type="button" class="btn btn-sm btn-secondary" onclick="addItemRow()">+ Adicionar Item</button>
+        </div>
+        <div class="tbl-wrap">
+          <table class="items-tbl" id="items-tbl">
+            <thead><tr>
+              <th>Descrição</th><th>Qtd</th><th>Base mm</th><th>Altura mm</th><th>Comp mm</th>
+              <th>m³</th><th></th>
+            </tr></thead>
+            <tbody id="items-tbody"></tbody>
+            <tfoot><tr class="items-row-total">
+              <td colspan="5" style="text-align:right; font-size:.75rem; color:var(--muted)">Total aplainado</td>
+              <td colspan="2"><span class="mono" id="items-total">0.000 m³</span></td>
+            </tr></tfoot>
+          </table>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">Salvar Pedido</button>
+          <button type="button" class="btn btn-secondary" onclick="cancelEdit('pedido')">Novo</button>
+          <button type="button" class="btn btn-danger" id="btn-del-pedido" style="display:none" onclick="deletePedido()">Excluir</button>
+          <span class="form-hint" id="hint-pedido"></span>
+        </div>
+      </form>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-head"><span class="card-title">Pedidos Cadastrados</span></div>
+    <div class="card-body" style="padding-top:0"><div class="tbl-wrap"><div id="list-pedidos"></div></div></div>
+  </div>
+</section>
+
+
+<!-- ════════════════ ESTOQUE MENSAL ════════════════ -->
+<section class="section" id="s-est-mensal">
+  <div class="sec-title">Estoque Mensal <span class="tag">Apontamento físico</span></div>
+  <div class="card">
+    <div class="card-head"><span class="card-title" id="title-est-mensal">Novo Apontamento</span></div>
+    <div class="card-body">
+      <form id="form-est-mensal" onsubmit="saveEstMensal(event)">
+        <div class="form-grid">
+          <div class="fg"><label>Mês Referência *</label><input type="month" id="em-mes" required></div>
+          <div class="fg"><label>m³ 2ª Linha *</label><input type="number" id="em-2a" step="0.001" min="0" required placeholder="0.000"></div>
+          <div class="fg"><label>m³ Refilo *</label><input type="number" id="em-refilo" step="0.001" min="0" required placeholder="0.000"></div>
+          <div class="fg"><label>m³ Bruto Remanescente *</label><input type="number" id="em-bruto" step="0.001" min="0" required placeholder="0.000"></div>
+          <div class="fg"><label>Responsável</label><input type="text" id="em-resp" placeholder="Eduardo"></div>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">Salvar</button>
+          <button type="button" class="btn btn-secondary" onclick="cancelEdit('estMensal')">Novo</button>
+          <button type="button" class="btn btn-danger" id="btn-del-estmensal" style="display:none" onclick="deleteEstMensal()">Excluir</button>
+          <span class="form-hint" id="hint-estmensal"></span>
+        </div>
+      </form>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-head"><span class="card-title">Apontamentos</span></div>
+    <div class="card-body" style="padding-top:0"><div class="tbl-wrap"><div id="list-estmensal"></div></div></div>
+  </div>
+</section>
+
+<!-- ════════════════ ESTOQUE INICIAL ════════════════ -->
+<section class="section" id="s-est-inicial">
+  <div class="sec-title">Estoque Inicial <span class="tag">01/01/2026</span></div>
+  <div class="card">
+    <div class="card-head">
+      <span class="card-title">Estado em 01/01/2026</span>
+      <span style="font-size:.72rem; color:var(--muted)">Valores usados como ponto de partida de todos os cálculos</span>
+    </div>
+    <div class="card-body">
+      <form id="form-est-inicial" onsubmit="saveEstInicial(event)">
+        <div class="form-grid">
+          <div class="fg"><label>m³ Bruto no Pool</label><input type="number" id="ei-bruto" step="0.001" min="0" value="0"></div>
+          <div class="fg"><label>R$/m³ do Bruto Inicial</label><input type="number" id="ei-rpm3" step="0.01" min="0" value="0"></div>
+          <div class="fg"><label>m³ 2ª Linha</label><input type="number" id="ei-2a" step="0.001" min="0" value="0"></div>
+          <div class="fg"><label>m³ Refilo</label><input type="number" id="ei-refilo" step="0.001" min="0" value="0"></div>
+          <div class="fg"><label>Gramatura cola (kg/m²/linha)</label><input type="number" id="ei-taxa" step="0.001" min="0" value="0.25"></div>
+          <div class="fg"><label>Espessura lamela (mm)</label><input type="number" id="ei-lamela" step="0.01" min="1" value="30.07"></div>
+          <div class="fg"><label>R$/kg Adesivo Inicial</label><input type="number" id="ei-rpkg" step="0.01" min="0" value="0"></div>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">Salvar Estoque Inicial</button>
+          <span class="form-hint" id="hint-estinic"></span>
+        </div>
+      </form>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════ MARGENS ════════════════ -->
+<section class="section" id="s-margens">
+  <div class="sec-title">Margens por Pedido <span class="tag">Calculado</span></div>
+  <div id="margens-content"></div>
+</section>
+
+<!-- ════════════════ BALANÇO ════════════════ -->
+<section class="section" id="s-balanco">
+  <div class="sec-title">Balanço da Fábrica <span class="tag">Por mês</span></div>
+  <div id="balanco-content"></div>
+</section>
+
+<!-- ════════════════ DADOS ════════════════ -->
+<section class="section" id="s-dados">
+  <div class="sec-title">Dados <span class="tag">Import / Export</span></div>
+
+  <!-- NF-e XML -->
+  <div class="card">
+    <div class="card-head">
+      <span class="card-title">NF-e XML <span class="badge badge-green" style="font-size:.68rem;vertical-align:middle">Automático</span></span>
+    </div>
+    <div class="card-body">
+      <p style="font-size:.85rem; color:var(--muted); margin-bottom:.8rem">
+        Importe o arquivo <strong>.xml da Nota Fiscal Eletrônica</strong>. O sistema detecta automaticamente se é compra de madeira ou adesivo pelo nome do produto e extrai fornecedor, data, valor e quantidade.<br><br>
+        <strong>Como obter o XML:</strong> peça ao seu contador ou acesse o portal da Sefaz com o número da NF. Aceita múltiplos arquivos de uma vez.
+      </p>
+      <label class="btn btn-primary" style="cursor:pointer; display:inline-block">
+        📄 Selecionar NF-e XML
+        <input type="file" accept=".xml" multiple style="display:none" onchange="importNFe(this)">
+      </label>
+      <span style="font-size:.75rem; color:var(--muted); margin-left:.7rem">Aceita múltiplos .xml de uma vez</span>
+    </div>
+  </div>
+
+  <!-- NFs pré-carregadas 2026 -->
+  <div class="card" style="border-top-color:var(--green-mid)">
+    <div class="card-head">
+      <span class="card-title">Dados iniciais 2026 <span class="badge badge-primary" style="font-size:.68rem;vertical-align:middle">Pré-processado</span></span>
+    </div>
+    <div class="card-body">
+      <p style="font-size:.85rem; color:var(--muted); margin-bottom:.8rem">
+        Carrega automaticamente todas as <strong>NFs de compra de 2026</strong> já extraídas dos arquivos XML e o <strong>romaneio Giancarlos 1108</strong> — sem precisar selecionar arquivos.
+      </p>
+      <div style="font-size:.8rem; color:var(--muted); margin-bottom:.9rem; line-height:1.8">
+        Inclui: <span class="badge badge-primary">6 compras madeira</span> &nbsp;<span class="badge badge-amber">1 compra TLP 40 — 1.100 kg</span> &nbsp;<span class="badge badge-green">4 pedidos MLC</span> &nbsp;<span class="badge badge-primary">estoque abr/26</span>
+      </div>
+      <button class="btn btn-primary" onclick="previewSeed2026()">⚡ Carregar dados 2026</button>
+      <span style="font-size:.75rem; color:var(--muted); margin-left:.7rem">Duplicatas ignoradas automaticamente</span>
+    </div>
+  </div>
+
+  <!-- CSV / XLSX -->
+  <div class="card">
+    <div class="card-head"><span class="card-title">Planilha — CSV / Excel / Google Sheets</span></div>
+    <div class="card-body">
+      <p style="font-size:.85rem; color:var(--muted); margin-bottom:.8rem">
+        <strong>Google Sheets:</strong> Arquivo → Fazer download → .xlsx ou .csv.<br>
+        <strong>Excel:</strong> Salvar como .xlsx ou .csv.<br>
+        Selecione o tipo de dado antes de abrir o arquivo.
+      </p>
+      <div style="display:flex; gap:.8rem; align-items:flex-end; flex-wrap:wrap; margin-bottom:.8rem">
+        <div class="fg" style="margin:0">
+          <label>Tipo de dado</label>
+          <select id="imp-sheet-tipo" style="border:1px solid var(--border);border-radius:4px;padding:.38rem .6rem;font-family:var(--font);font-size:.85rem">
+            <option value="madeira">Compras de Madeira</option>
+            <option value="adesivo">Compras de Adesivo</option>
+            <option value="pedidos">Pedidos</option>
+          </select>
+        </div>
+        <label class="btn btn-primary" style="cursor:pointer; display:inline-block; margin-bottom:0">
+          📊 Selecionar planilha
+          <input type="file" accept=".csv,.xlsx,.xls,.ods" style="display:none" onchange="importPlanilha(this)">
+        </label>
+      </div>
+      <div style="font-size:.78rem; color:var(--muted); line-height:1.7">
+        <strong>Nomes de coluna reconhecidos automaticamente:</strong><br>
+        Madeira: <span class="badge badge-gray">fornecedor</span> <span class="badge badge-gray">volume_m3</span> <span class="badge badge-gray">valor_total</span> <span class="badge badge-gray">data_recebimento</span> <span class="badge badge-gray">nf</span><br>
+        Adesivo: <span class="badge badge-gray">fornecedor</span> <span class="badge badge-gray">kg</span> <span class="badge badge-gray">valor_total</span> <span class="badge badge-gray">produto</span><br>
+        Pedidos: <span class="badge badge-gray">cliente</span> <span class="badge badge-gray">orcamento</span> <span class="badge badge-gray">valor_venda</span> <span class="badge badge-gray">data_entrega</span> <span class="badge badge-gray">local</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- PDF (info only) -->
+  <div class="card" style="border-top-color:var(--accent)">
+    <div class="card-head">
+      <span class="card-title">PDF de NF <span class="badge badge-gray" style="font-size:.68rem;vertical-align:middle">Não automático</span></span>
+    </div>
+    <div class="card-body">
+      <p style="font-size:.85rem; color:var(--muted)">
+        PDFs não têm estrutura de dados lida por máquina — são imagens de texto. Não é possível extrair dados automaticamente sem OCR.<br><br>
+        <strong>Alternativas:</strong><br>
+        • Peça ao fornecedor ou contador o <strong>arquivo .xml da NF-e</strong> (mesmo número, formato diferente) — funciona perfeitamente com a opção acima.<br>
+        • Ou preencha manualmente nas abas <strong>Madeira</strong> / <strong>Adesivo</strong> com os dados do PDF.
+      </p>
+    </div>
+  </div>
+
+  <!-- JSON (backup/restore) -->
+  <div class="card">
+    <div class="card-head"><span class="card-title">Backup JSON do app</span></div>
+    <div class="card-body">
+      <p style="font-size:.85rem; color:var(--muted); margin-bottom:.8rem">
+        Exporta/importa o banco completo do app. Use para fazer backup ou restaurar em outro computador.
+      </p>
+      <div style="display:flex; gap:.6rem; flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="exportJSON()">⬇ Exportar JSON completo</button>
+        <label class="btn btn-secondary" style="cursor:pointer; display:inline-block">
+          ⬆ Importar JSON do app
+          <input type="file" accept=".json" style="display:none" onchange="importJSON(this)">
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- Zerar / Resumo -->
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem">
+    <div class="card">
+      <div class="card-head"><span class="card-title">Resumo</span></div>
+      <div class="card-body"><div id="dados-resumo"></div></div>
+    </div>
+    <div class="card" style="border-top-color:var(--red)">
+      <div class="card-head"><span class="card-title">Zerar dados</span></div>
+      <div class="card-body">
+        <p style="font-size:.85rem; color:var(--muted); margin-bottom:.8rem">Apaga tudo. Exporte primeiro.</p>
+        <button class="btn btn-danger" onclick="resetAll()">Zerar todos os dados</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<!-- ════════════════ MODAL PREVIEW ════════════════ -->
+<div id="imp-modal" class="modal-bg" style="display:none" onclick="if(event.target===this)cancelImport()">
+  <div class="modal-box">
+    <div class="modal-head">
+      <span class="modal-title" id="imp-modal-title">Pré-visualização</span>
+      <button class="btn btn-link" onclick="cancelImport()" style="font-size:1.3rem;line-height:1;text-decoration:none">×</button>
+    </div>
+    <div class="modal-body" id="imp-modal-body"></div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" onclick="cancelImport()">Cancelar</button>
+      <button class="btn btn-primary" id="imp-modal-confirm" onclick="confirmImport()">Importar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// ═══════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════
+function emptyState() {
+  return {
+    version: '1.0.0',
+    estoque_inicial: { m3_bruto_pool:0, m3_2a_linha:0, m3_refilo:0, taxa_kg_m3_padrao:0.25, espessura_lamela_mm:30.07, r_m3_bruto:0, r_kg_adesivo:0 },
+    compras_madeira: [],
+    compras_adesivo: [],
+    pedidos: [],
+    apontamentos_mensais: []
+  };
+}
+
+let state = emptyState();
+let editId = { madeira:null, adesivo:null, pedido:null, estMensal:null };
+let formItens = [];
+
+// ═══════════════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════════════
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+function brl(n) {
+  if (n == null || isNaN(n)) return '—';
+  return 'R$ ' + Number(n).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+function m3f(n) {
+  if (n == null || isNaN(n)) return '—';
+  return Number(n).toLocaleString('pt-BR',{minimumFractionDigits:3,maximumFractionDigits:3}) + ' m³';
+}
+function kgf(n) {
+  if (n == null || isNaN(n)) return '—';
+  return Number(n).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1}) + ' kg';
+}
+function pctf(n) {
+  if (n == null || isNaN(n)) return '—';
+  return (n >= 0 ? '+' : '') + Number(n).toFixed(1) + '%';
+}
+function fmtDate(d) {
+  if (!d) return '—';
+  const p = d.slice(0,10).split('-');
+  return p[2]+'/'+p[1]+'/'+p[0];
+}
+function mesLabel(ym) {
+  if (!ym) return '';
+  const M=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const [y,m] = ym.split('-');
+  return M[parseInt(m)-1]+'/'+y;
+}
+function dateToMes(d) { return d ? d.slice(0,7) : null; }
+function today() { return new Date().toISOString().slice(0,10); }
+function prevMes(ym) {
+  const [y,m] = ym.split('-').map(Number);
+  return m===1 ? `${y-1}-12` : `${y}-${String(m-1).padStart(2,'0')}`;
+}
+function allMeses() {
+  const s = new Set();
+  state.pedidos.forEach(p => p.data_entrega && s.add(dateToMes(p.data_entrega)));
+  state.compras_madeira.forEach(c => s.add(dateToMes(c.data_recebimento)));
+  state.apontamentos_mensais.forEach(a => s.add(a.mes_referencia));
+  return [...s].filter(Boolean).sort();
+}
+
+// ═══════════════════════════════════════════════════════
+// CÁLCULOS (SPEC §2)
+// ═══════════════════════════════════════════════════════
+function m3Item(it) { return (it.qtd * it.base_mm * it.altura_mm * it.comp_mm) / 1e9; }
+function m3Aplainado(p) { return (p.itens||[]).reduce((s,i) => s + m3Item(i), 0); }
+
+function linhasColaItem(it) {
+  const esp = +(state.estoque_inicial.espessura_lamela_mm) || 30.07;
+  return Math.max(0, Math.round((it.altura_mm||0) / esp) - 1);
+}
+function taxaKgM3Item(it) {
+  return linhasColaItem(it) * (+(state.estoque_inicial.taxa_kg_m3_padrao) || 0.25);
+}
+function kgAdesivoPedido(p) {
+  return (p.itens||[]).reduce((s,it) => s + m3Item(it) * taxaKgM3Item(it), 0);
+}
+
+// Fórmula da plaina (ADENDO §3): bruto consumido por peça
+// m3B = (altura/esp) × 0.04 × (base+20) × comp × qtd / 1e6
+function m3BrutoItem(it) {
+  const esp = +(state.estoque_inicial.espessura_lamela_mm) || 30.07;
+  return (it.altura_mm / esp) * 0.04 * (it.base_mm + 20) * it.comp_mm * it.qtd / 1e6;
+}
+function m3BrutoPedido(p) {
+  return (p.itens||[]).reduce((s,it) => s + m3BrutoItem(it), 0);
+}
+
+function precoM3Pool(data) {
+  const ei = state.estoque_inicial;
+  let m3 = +ei.m3_bruto_pool||0, rs = (+ei.r_m3_bruto||0) * m3;
+  state.compras_madeira.filter(c => c.data_recebimento <= data)
+    .forEach(c => { m3 += c.volume_m3; rs += c.valor_total; });
+  return m3 > 0 ? rs/m3 : null;
+}
+
+function precoKgPool(data) {
+  let kg = 0, rs = 0;
+  state.compras_adesivo.filter(c => c.data_recebimento <= data && c.produto==='TLP_40')
+    .forEach(c => { kg += c.kg; rs += c.valor_total; });
+  return kg > 0 ? rs/kg : null;
+}
+
+function fatorMes(mesRef) {
+  const apt = state.apontamentos_mensais.find(a => a.mes_referencia === mesRef);
+  if (!apt) return null;
+  const ei = state.estoque_inicial;
+  let aptAnt;
+  if (mesRef === '2026-01') {
+    aptAnt = { m3_bruto_remanescente: +ei.m3_bruto_pool||0, m3_2a_linha: +ei.m3_2a_linha||0, m3_refilo: +ei.m3_refilo||0 };
+  } else {
+    aptAnt = state.apontamentos_mensais.find(a => a.mes_referencia === prevMes(mesRef));
+    if (!aptAnt) return null;
+  }
+  const m3Ped = state.pedidos.filter(p => p.data_entrega && dateToMes(p.data_entrega)===mesRef)
+    .reduce((s,p) => s + m3Aplainado(p), 0);
+  if (m3Ped === 0) return null;
+  const ent  = state.compras_madeira.filter(c => dateToMes(c.data_recebimento)===mesRef).reduce((s,c) => s+c.volume_m3,0);
+  const vBruto = apt.m3_bruto_remanescente - aptAnt.m3_bruto_remanescente;
+  const v2a    = apt.m3_2a_linha           - aptAnt.m3_2a_linha;
+  const vRef   = apt.m3_refilo             - aptAnt.m3_refilo;
+  const consumo  = ent - vBruto;
+  const serragem = consumo - m3Ped - v2a - vRef;
+  const atrib    = m3Ped + serragem;
+  return { fator: atrib/m3Ped, ent, vBruto, v2a, vRef, consumo, serragem, m3Ped, atrib };
+}
+
+function fatorVigente(mesRef) {
+  const r = fatorMes(mesRef);
+  if (r) return r;
+  let m = prevMes(mesRef);
+  for (let i=0; i<24; i++) { const r2 = fatorMes(m); if (r2) return r2; m = prevMes(m); }
+  return null;
+}
+
+
+function custoPedido(pid) {
+  const p = state.pedidos.find(x => x.id===pid);
+  if (!p||!p.data_entrega) return null;
+  const m3 = m3Aplainado(p);
+  if (m3 === 0) return null;
+  const pM3  = precoM3Pool(p.data_entrega);
+  const pKg  = precoKgPool(p.data_entrega);
+  const m3B  = m3BrutoPedido(p);
+  const kgAde = kgAdesivoPedido(p);
+  // custo madeira via fórmula da plaina (ADENDO §3) — não usa fator mensal
+  const cM = pM3!=null ? pM3*m3B : null;
+  const cA = pKg!=null ? pKg*kgAde : null;
+  const cT = (cM!=null&&cA!=null) ? cM+cA : null;
+  const mR = cT!=null ? p.valor_venda - cT : null;
+  const mP = (mR!=null&&p.valor_venda) ? mR/p.valor_venda*100 : null;
+  const taxaMedia = m3 > 0 ? kgAde/m3 : null;
+  return { m3, m3B, pM3, pKg, kgAde, taxaMedia, cM, cA, cT, mR, mP,
+    ok: cT!=null,
+    av: { semM3Pool: pM3==null, semKgPool: pKg==null } };
+}
+
+function balancaMes(mesRef) {
+  const fR  = fatorMes(mesRef);
+  const apt = state.apontamentos_mensais.find(a => a.mes_referencia===mesRef);
+  const pM3 = precoM3Pool(mesRef+'-28');
+  const entM3 = state.compras_madeira.filter(c => dateToMes(c.data_recebimento)===mesRef).reduce((s,c)=>s+c.volume_m3,0);
+  const entRS = state.compras_madeira.filter(c => dateToMes(c.data_recebimento)===mesRef).reduce((s,c)=>s+c.valor_total,0);
+  const adKg  = state.compras_adesivo.filter(c=>c.produto==='TLP_40'&&dateToMes(c.data_recebimento)===mesRef).reduce((s,c)=>s+c.kg,0);
+  const adRS  = state.compras_adesivo.filter(c=>c.produto==='TLP_40'&&dateToMes(c.data_recebimento)===mesRef).reduce((s,c)=>s+c.valor_total,0);
+  const pedsMes = state.pedidos.filter(p=>p.data_entrega&&dateToMes(p.data_entrega)===mesRef);
+  const m3Ped = fR ? fR.m3Ped : pedsMes.reduce((s,p)=>s+m3Aplainado(p),0);
+  const kgCons = pedsMes.reduce((s,p)=>s+kgAdesivoPedido(p),0);
+  const travado = apt && pM3 ? (apt.m3_2a_linha+apt.m3_refilo)*pM3 : null;
+  return { mesRef, entM3, entRS, adKg, adRS, kgCons, m3Ped, travado,
+    fator: fR?.fator, consumo: fR?.consumo, serragem: fR?.serragem,
+    v2a: fR?.v2a, vRef: fR?.vRef,
+    rendimento: fR&&fR.consumo>0 ? m3Ped/fR.consumo*100 : null,
+    pctSerr: fR&&fR.consumo>0 ? fR.serragem/fR.consumo*100 : null };
+}
+
+// ═══════════════════════════════════════════════════════
+// NAVEGAÇÃO
+// ═══════════════════════════════════════════════════════
+let currentTab = 'painel';
+
+function showTab(tab) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('s-'+tab).classList.add('active');
+  document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+  currentTab = tab;
+  renderTab(tab);
+}
+
+function renderTab(tab) {
+  switch(tab) {
+    case 'painel':     renderPainel();    break;
+    case 'madeira':    renderMadeira();   break;
+    case 'adesivo':    renderAdesivo();   break;
+    case 'pedidos':    renderPedidos();   break;
+    case 'est-mensal': renderEstMensal(); break;
+    case 'est-inicial':renderEstInicial();break;
+    case 'margens':    renderMargens();   break;
+    case 'balanco':    renderBalanco();   break;
+    case 'dados':      renderDados();     break;
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// KPIs — HELPERS
+// ═══════════════════════════════════════════════════════
+function getPeriodo() {
+  const sel = document.getElementById('kpi-periodo')?.value || 'ano';
+  const now = new Date(); const y = now.getFullYear(), m = now.getMonth()+1;
+  const pad = n => String(n).padStart(2,'0');
+  if (sel === 'ano')     return { ini:`${y}-01-01`, fim:today(), label:`01/jan – ${fmtDate(today())} ${y}` };
+  if (sel === 'mes')     return { ini:`${y}-${pad(m)}-01`, fim:today(), label:mesLabel(`${y}-${pad(m)}`) };
+  if (sel === 'mes-ant') {
+    const pm=m===1?12:m-1, py=m===1?y-1:y;
+    const fim=`${py}-${pad(pm)}-${new Date(py,pm,0).getDate()}`;
+    return { ini:`${py}-${pad(pm)}-01`, fim, label:mesLabel(`${py}-${pad(pm)}`) };
+  }
+  if (sel === 'tri') {
+    const t=Math.floor((m-1)/3), mi=t*3+1;
+    return { ini:`${y}-${pad(mi)}-01`, fim:today(), label:`T${t+1}/${y}` };
+  }
+  return { ini:'2000-01-01', fim:today(), label:'Todo o histórico' };
+}
+
+function diasUteis(ini, fim) {
+  let d = new Date(ini+'T12:00'), count = 0;
+  const e = new Date(fim+'T12:00');
+  while (d <= e) { const w=d.getDay(); if(w>0&&w<6) count++; d.setDate(d.getDate()+1); }
+  return count;
+}
+
+function calcKPIs(ini, fim) {
+  const ei = state.estoque_inicial;
+
+  // KPI 1 — Bruto entrado
+  const madP = state.compras_madeira.filter(c => c.data_recebimento >= ini && c.data_recebimento <= fim);
+  const k1m3 = madP.reduce((s,c)=>s+c.volume_m3,0);
+  const k1rs = madP.reduce((s,c)=>s+c.valor_total,0);
+
+  // KPI 2 — MLC produzido
+  const pedsP = state.pedidos.filter(p => p.data_entrega && p.data_entrega >= ini && p.data_entrega <= fim);
+  const k2m3 = pedsP.reduce((s,p)=>s+m3Aplainado(p),0);
+  const k2rs = pedsP.reduce((s,p)=>s+(+p.valor_venda||0),0);
+
+  // Apontamento fim do período
+  const apts = state.apontamentos_mensais
+    .filter(a => a.mes_referencia <= fim.slice(0,7))
+    .sort((a,b)=>b.mes_referencia.localeCompare(a.mes_referencia));
+  const aptFim = apts[0] || null;
+
+  // Estoque inicial de bruto (só inclui se período começa no início do histórico)
+  const eiBruto = ini <= '2026-01-02' ? (+ei.m3_bruto_pool||0) : 0;
+
+  // Consumo implícito de bruto no período
+  const estBrutoFim   = aptFim ? (aptFim.m3_bruto_remanescente||0) : null;
+  const est2aFim      = aptFim ? (aptFim.m3_2a_linha||0) : null;
+  const estRefiloFim  = aptFim ? (aptFim.m3_refilo||0) : null;
+  const consumoBruto  = estBrutoFim!=null ? (eiBruto + k1m3 - estBrutoFim) : null;
+
+  // KPI 3 — Refilo
+  const k3m3 = estRefiloFim;
+
+  // KPI 4 — 2ª linha
+  const k4m3 = est2aFim;
+
+  // KPI 5 — Serragem (consumo de bruto menos destinos recuperáveis)
+  const k5m3 = (consumoBruto!=null)
+    ? consumoBruto - k2m3 - (est2aFim||0) - (estRefiloFim||0)
+    : null;
+
+  // KPI 6 — Adesivo
+  const k6kg = pedsP.reduce((s,p)=>s+kgAdesivoPedido(p),0);
+  const pKg  = precoKgPool(fim);
+  const k6rs = pKg!=null ? k6kg*pKg : null;
+
+  // KPI 7 — Tempo
+  const k7du   = diasUteis(ini, fim);
+  const k7hDisp= k7du * 8.5;
+
+  // KPI 8 — Rendimento
+  const k8pct   = (consumoBruto!=null && consumoBruto>0) ? k2m3/consumoBruto*100 : null;
+  const k8fator = k8pct ? 100/k8pct : null;
+
+  // KPI 9 — Custo R$/m³
+  const custos    = pedsP.map(p=>custoPedido(p.id)).filter(c=>c?.ok);
+  const k9m3tot   = custos.reduce((s,c)=>s+c.m3,0);
+  const k9cMad    = custos.reduce((s,c)=>s+(c.cM||0),0);
+  const k9cAde    = custos.reduce((s,c)=>s+(c.cA||0),0);
+  const k9cTot    = k9cMad + k9cAde;
+  const k9rpm3    = k9m3tot>0 ? k9cTot/k9m3tot : null;
+  const k9madRpm3 = k9m3tot>0 ? k9cMad/k9m3tot : null;
+  const k9adeRpm3 = k9m3tot>0 ? k9cAde/k9m3tot : null;
+
+  const pM3 = precoM3Pool(fim);
+
+  return {
+    k1:{ m3:k1m3, rs:k1rs, rpm3:k1m3>0?k1rs/k1m3:null, conf:madP.length?'solido':'sem-dado' },
+    k2:{ m3:k2m3, rs:k2rs, n:pedsP.length, conf:pedsP.length?'solido':'sem-dado' },
+    k3:{ m3:k3m3, rs:k3m3!=null&&pM3?k3m3*pM3:null, conf:aptFim?'parcial':'sem-dado' },
+    k4:{ m3:k4m3, rs:k4m3!=null&&pM3?k4m3*pM3:null, conf:aptFim?'parcial':'sem-dado' },
+    k5:{ m3:k5m3, rs:k5m3!=null&&pM3?k5m3*pM3:null, conf:k5m3!=null?'estimativa':'sem-dado' },
+    k6:{ kg:k6kg, rs:k6rs, conf:pedsP.length?'estimativa':'sem-dado' },
+    k7:{ du:k7du, hDisp:k7hDisp, conf:'parcial' },
+    k8:{ pct:k8pct, fator:k8fator, consumo:consumoBruto, conf:k8pct!=null?'parcial':'sem-dado' },
+    k9:{ rpm3:k9rpm3, madRpm3:k9madRpm3, adeRpm3:k9adeRpm3,
+         conf:k9rpm3!=null?(custos.length===pedsP.length?'parcial':'estimativa'):'sem-dado' }
+  };
+}
+
+function kpi9card(num, pergunta, valorPrincipal, sub, conf, borderColor) {
+  const labels = { solido:'Sólido', parcial:'Parcial', estimativa:'Estimativa', 'sem-dado':'Sem dado' };
+  const cls    = { solido:'conf-solido', parcial:'conf-parcial', estimativa:'conf-estimativa', 'sem-dado':'conf-sem-dado' };
+  const cor    = borderColor || 'var(--primary)';
+  const vHtml  = valorPrincipal
+    ? `<div class="kpi9-valor">${valorPrincipal}</div>`
+    : `<div class="kpi9-valor sem-dado">Sem dados suficientes</div>`;
+  return `
+  <div class="kpi9-card" style="border-top-color:${cor}">
+    <div class="kpi9-header">
+      <span class="kpi9-num">${String(num).padStart(2,'0')}</span>
+      <span class="kpi9-conf ${cls[conf]||'conf-sem-dado'}">${labels[conf]||conf}</span>
+    </div>
+    <div class="kpi9-pergunta">${pergunta}</div>
+    ${vHtml}
+    ${sub ? `<div class="kpi9-sub">${sub}</div>` : ''}
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════════════
+// RENDER — PAINEL
+// ═══════════════════════════════════════════════════════
+function renderPainel() {
+  const { ini, fim, label } = getPeriodo();
+  const el = document.getElementById('kpi-periodo-label');
+  if (el) el.textContent = label;
+
+  // Alertas
+  const alertas = [];
+  const meses = allMeses();
+  const mesesSemApt = meses.filter(m => {
+    const temPed = state.pedidos.some(p => p.data_entrega && dateToMes(p.data_entrega)===m);
+    const temApt = state.apontamentos_mensais.some(a => a.mes_referencia===m);
+    return temPed && !temApt;
+  });
+  if (mesesSemApt.length) alertas.push(`<div class="alert alert-warn">⚠ Sem apontamento em: ${mesesSemApt.map(mesLabel).join(', ')} — KPIs de estoque incompletos.</div>`);
+  if (!state.compras_madeira.length) alertas.push('<div class="alert alert-info">ℹ Nenhuma compra de madeira cadastrada.</div>');
+  if (!state.compras_adesivo.length) alertas.push('<div class="alert alert-info">ℹ Nenhuma compra de adesivo cadastrada.</div>');
+  if (!alertas.length) alertas.push('<div class="alert alert-ok">✓ Todos os dados necessários estão presentes.</div>');
+  document.getElementById('painel-alertas').innerHTML = alertas.join('');
+
+  // Calcular os 9 KPIs
+  const k = calcKPIs(ini, fim);
+  const verde = 'var(--green-mid)', amber = 'var(--accent)', cinza = 'var(--muted)';
+
+  const cards = [
+    kpi9card(1,
+      'Qual foi o volume total de madeira bruta que entrou na fábrica?',
+      k.k1.m3 > 0 ? `${m3f(k.k1.m3)}` : null,
+      k.k1.m3 > 0 ? `<strong>${brl(k.k1.rs)}</strong> · ${k.k1.rpm3?brl(k.k1.rpm3)+'/m³':''}` : null,
+      k.k1.conf, verde),
+
+    kpi9card(2,
+      'Qual foi o volume total de MLC produzido e faturado?',
+      k.k2.m3 > 0 ? `${m3f(k.k2.m3)}` : null,
+      k.k2.m3 > 0 ? `<strong>${brl(k.k2.rs)}</strong> · ${k.k2.n} pedido(s)` : null,
+      k.k2.conf, verde),
+
+    kpi9card(3,
+      'Qual o volume de refilo gerado e estocado?',
+      k.k3.m3 != null ? m3f(k.k3.m3) : null,
+      k.k3.rs != null ? `Custo material: <strong>${brl(k.k3.rs)}</strong>` : 'Cadastre apontamento de estoque',
+      k.k3.conf, amber),
+
+    kpi9card(4,
+      'Qual o volume estocado como 2ª linha?',
+      k.k4.m3 != null ? m3f(k.k4.m3) : null,
+      k.k4.rs != null ? `Custo material: <strong>${brl(k.k4.rs)}</strong>` : 'Cadastre apontamento de estoque',
+      k.k4.conf, amber),
+
+    kpi9card(5,
+      'Qual o volume de serragem e tocos gerados como lixo?',
+      k.k5.m3 != null ? m3f(Math.max(0, k.k5.m3)) : null,
+      k.k5.rs != null ? `Custo material perdido: <strong>${brl(Math.max(0,k.k5.rs))}</strong>` : 'Requer apontamento de estoque',
+      k.k5.conf, 'var(--red)'),
+
+    kpi9card(6,
+      'Qual o volume de cola/adesivo consumido para produzir a MLC?',
+      k.k6.kg > 0 ? `${k.k6.kg.toFixed(1)} kg` : null,
+      k.k6.rs != null ? `<strong>${brl(k.k6.rs)}</strong> · taxa geométrica por peça` : null,
+      k.k6.conf, amber),
+
+    kpi9card(7,
+      'Qual o tempo disponível para produção no período?',
+      `${k.k7.du} dias úteis`,
+      `<strong>${k.k7.hDisp.toFixed(0)} horas disponíveis</strong> · seg–sex · 8,5 h/dia<br>Horas efetivas: <em>não medido</em>`,
+      k.k7.conf, cinza),
+
+    kpi9card(8,
+      'Qual é o rendimento de madeira bruta → MLC acabado?',
+      k.k8.pct != null ? `${k.k8.pct.toFixed(1)}%` : null,
+      k.k8.fator != null
+        ? `1 m³ MLC = <strong>${k.k8.fator.toFixed(2)} m³ bruto</strong><br>Consumo total: ${k.k8.consumo!=null?m3f(k.k8.consumo):'—'}`
+        : 'Requer apontamento de estoque',
+      k.k8.conf, verde),
+
+    kpi9card(9,
+      'Qual é o custo real R$/m³ de MLC acabado?',
+      k.k9.rpm3 != null ? brl(k.k9.rpm3)+'/m³' : null,
+      k.k9.rpm3 != null
+        ? `Madeira: <strong>${brl(k.k9.madRpm3)}/m³</strong> · Cola: <strong>${brl(k.k9.adeRpm3)}/m³</strong><br><em>Não inclui M.O., energia, frete</em>`
+        : 'Requer pedidos com data de entrega',
+      k.k9.conf, verde),
+  ];
+
+  document.getElementById('painel-kpis9').innerHTML = cards.join('');
+
+  // Tabela de pedidos do período
+  const pedsP = state.pedidos.filter(p => p.data_entrega && p.data_entrega >= ini && p.data_entrega <= fim)
+    .sort((a,b)=>b.data_entrega.localeCompare(a.data_entrega));
+  if (pedsP.length) {
+    const rows = pedsP.map(p => {
+      const c = custoPedido(p.id);
+      const margBadge = c?.ok ? `<span class="badge ${c.mP>=0?'badge-green':'badge-red'}">${pctf(c.mP)}</span>` : '<span class="badge badge-gray">—</span>';
+      return `<tr onclick="editPedido('${p.id}')"><td>${fmtDate(p.data_entrega)}</td><td><strong>${p.cliente}</strong></td><td class="mono">${brl(p.valor_venda)}</td><td class="mono">${m3f(m3Aplainado(p))}</td><td>${margBadge}</td></tr>`;
+    }).join('');
+    document.getElementById('painel-ultimos').innerHTML = `
+      <div class="card"><div class="card-head"><span class="card-title">Pedidos no período</span></div>
+      <div class="card-body" style="padding-top:0"><div class="tbl-wrap">
+      <table><thead><tr><th>Entrega</th><th>Cliente</th><th>Venda</th><th>m³ apl.</th><th>Margem</th></tr></thead>
+      <tbody>${rows}</tbody></table></div></div></div>`;
+  } else {
+    document.getElementById('painel-ultimos').innerHTML = '';
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// RENDER — MADEIRA
+// ═══════════════════════════════════════════════════════
+function renderMadeira() {
+  const preco = precoM3Pool(today());
+  document.getElementById('badge-preco-madeira').textContent = preco ? `Preço médio atual: ${brl(preco)}/m³` : 'Sem compras';
+
+  const rows = state.compras_madeira.sort((a,b)=>b.data_recebimento.localeCompare(a.data_recebimento)).map(c => `
+    <tr onclick="editMadeira('${c.id}')">
+      <td>${fmtDate(c.data_recebimento)}</td>
+      <td>${c.fornecedor}</td>
+      <td>${c.nf||'—'}</td>
+      <td class="mono">${m3f(c.volume_m3)}</td>
+      <td class="mono">${brl(c.valor_total)}</td>
+      <td class="mono">${brl(c.volume_m3?c.valor_total/c.volume_m3:null)}</td>
+      <td>${c.larguras||'—'}</td>
+      <td>${fmtDate(c.data_pagamento)||'—'}</td>
+    </tr>`).join('');
+
+  document.getElementById('list-madeira').innerHTML = rows ? `
+    <table><thead><tr><th>Data</th><th>Fornecedor</th><th>NF</th><th>m³</th><th>Total</th><th>R$/m³</th><th>Larguras</th><th>Pago em</th></tr></thead>
+    <tbody>${rows}</tbody></table>`
+    : '<div class="tbl-empty">Nenhuma compra cadastrada. Preencha o formulário acima.</div>';
+}
+
+// ═══════════════════════════════════════════════════════
+// RENDER — ADESIVO
+// ═══════════════════════════════════════════════════════
+function renderAdesivo() {
+  const preco = precoKgPool(today());
+  document.getElementById('badge-preco-adesivo').textContent = preco ? `Preço médio atual: ${brl(preco)}/kg` : 'Sem compras';
+
+  const rows = state.compras_adesivo.sort((a,b)=>b.data_recebimento.localeCompare(a.data_recebimento)).map(c => `
+    <tr onclick="editAdesivo('${c.id}')">
+      <td>${fmtDate(c.data_recebimento)}</td>
+      <td>${c.fornecedor}</td>
+      <td>${c.nf||'—'}</td>
+      <td><span class="badge badge-amber">${c.produto}</span></td>
+      <td class="mono">${kgf(c.kg)}</td>
+      <td class="mono">${brl(c.valor_total)}</td>
+      <td class="mono">${brl(c.kg?c.valor_total/c.kg:null)}</td>
+      <td>${fmtDate(c.data_pagamento)||'—'}</td>
+    </tr>`).join('');
+
+  document.getElementById('list-adesivo').innerHTML = rows ? `
+    <table><thead><tr><th>Data</th><th>Fornecedor</th><th>NF</th><th>Produto</th><th>kg</th><th>Total</th><th>R$/kg</th><th>Pago em</th></tr></thead>
+    <tbody>${rows}</tbody></table>`
+    : '<div class="tbl-empty">Nenhuma compra cadastrada. Preencha o formulário acima.</div>';
+}
+
+// ═══════════════════════════════════════════════════════
+// RENDER — PEDIDOS
+// ═══════════════════════════════════════════════════════
+function renderPedidos() {
+  const rows = [...state.pedidos].sort((a,b)=>(b.data_entrega||'').localeCompare(a.data_entrega||'')).map(p => {
+    const c = custoPedido(p.id);
+    const mBadge = c?.ok ? `<span class="badge ${c.mP>=0?'badge-green':'badge-red'}">${pctf(c.mP)}</span>` : '<span class="badge badge-gray">sem dados</span>';
+    return `<tr onclick="editPedido('${p.id}')">
+      <td>${p.orcamento}</td>
+      <td><strong>${p.cliente}</strong></td>
+      <td>${p.local||'—'}</td>
+      <td>${fmtDate(p.data_entrega)}</td>
+      <td class="mono">${brl(p.valor_venda)}</td>
+      <td class="mono">${m3f(m3Aplainado(p))}</td>
+      <td>${mBadge}</td>
+    </tr>`;}).join('');
+
+  document.getElementById('list-pedidos').innerHTML = rows ? `
+    <table><thead><tr><th>Orç.</th><th>Cliente</th><th>Local</th><th>Entrega</th><th>Venda</th><th>m³</th><th>Margem</th></tr></thead>
+    <tbody>${rows}</tbody></table>`
+    : '<div class="tbl-empty">Nenhum pedido cadastrado.</div>';
+}
+
+
+// ═══════════════════════════════════════════════════════
+// RENDER — ESTOQUE MENSAL
+// ═══════════════════════════════════════════════════════
+function renderEstMensal() {
+  const rows = [...state.apontamentos_mensais].sort((a,b)=>b.mes_referencia.localeCompare(a.mes_referencia)).map(a => {
+    const fR = fatorMes(a.mes_referencia);
+    return `<tr onclick="editEstMensal('${a.id}')">
+      <td><strong>${mesLabel(a.mes_referencia)}</strong></td>
+      <td class="mono">${m3f(a.m3_2a_linha)}</td>
+      <td class="mono">${m3f(a.m3_refilo)}</td>
+      <td class="mono">${m3f(a.m3_bruto_remanescente)}</td>
+      <td>${fR ? `<span class="badge badge-primary">${fR.fator.toFixed(3)}</span>` : '<span class="badge badge-gray">sem dados</span>'}</td>
+      <td>${fmtDate(a.data_apontamento?.slice(0,10))}</td>
+    </tr>`;}).join('');
+
+  document.getElementById('list-estmensal').innerHTML = rows ? `
+    <table><thead><tr><th>Mês</th><th>2ª Linha</th><th>Refilo</th><th>Bruto rem.</th><th>Fator mês</th><th>Data apontamento</th></tr></thead>
+    <tbody>${rows}</tbody></table>`
+    : '<div class="tbl-empty">Nenhum apontamento cadastrado.</div>';
+}
+
+// ═══════════════════════════════════════════════════════
+// RENDER — ESTOQUE INICIAL
+// ═══════════════════════════════════════════════════════
+function renderEstInicial() {
+  const ei = state.estoque_inicial;
+  document.getElementById('ei-bruto').value  = ei.m3_bruto_pool||0;
+  document.getElementById('ei-rpm3').value   = ei.r_m3_bruto||0;
+  document.getElementById('ei-2a').value     = ei.m3_2a_linha||0;
+  document.getElementById('ei-refilo').value = ei.m3_refilo||0;
+  document.getElementById('ei-taxa').value   = ei.taxa_kg_m3_padrao!=null ? ei.taxa_kg_m3_padrao : 0.25;
+  document.getElementById('ei-lamela').value = ei.espessura_lamela_mm!=null ? ei.espessura_lamela_mm : 30.07;
+  document.getElementById('ei-rpkg').value   = ei.r_kg_adesivo||0;
+}
+
+// ═══════════════════════════════════════════════════════
+// RENDER — MARGENS
+// ═══════════════════════════════════════════════════════
+function renderMargens() {
+  if (!state.pedidos.length) {
+    document.getElementById('margens-content').innerHTML = '<div class="alert alert-info">Nenhum pedido cadastrado.</div>';
+    return;
+  }
+  const pedidos = [...state.pedidos].sort((a,b)=>(b.data_entrega||'').localeCompare(a.data_entrega||''));
+
+  // KPIs summary
+  const comCalculo = pedidos.filter(p => custoPedido(p.id)?.ok);
+  const totalVenda = pedidos.reduce((s,p)=>s+(+p.valor_venda||0),0);
+  const totalCusto = comCalculo.reduce((s,p)=>{const c=custoPedido(p.id);return s+(c.cT||0);},0);
+  const totalMargem = totalVenda - (comCalculo.length ? totalCusto : 0);
+  const margemPctMedia = comCalculo.length
+    ? comCalculo.reduce((s,p)=>{const c=custoPedido(p.id);return s+(c.mP||0);},0)/comCalculo.length : null;
+
+  const kpis = `
+    <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(170px,1fr)); gap:.8rem; margin-bottom:1rem">
+      <div class="kpi"><div class="kpi-label">Total Faturado</div><div class="kpi-value" style="font-size:1rem">${brl(totalVenda)}</div></div>
+      <div class="kpi"><div class="kpi-label">Total Custo</div><div class="kpi-value" style="font-size:1rem">${comCalculo.length?brl(totalCusto):'—'}</div><div class="kpi-sub">${comCalculo.length} pedido(s) calculado(s)</div></div>
+      <div class="kpi"><div class="kpi-label">Margem Total R$</div><div class="kpi-value" style="font-size:1rem; color:${totalMargem>=0?'var(--green-mid)':'var(--red)'}">${comCalculo.length?brl(totalMargem):'—'}</div></div>
+      <div class="kpi"><div class="kpi-label">Margem % Média</div><div class="kpi-value" style="color:${(margemPctMedia||0)>=0?'var(--green-mid)':'var(--red)'}">${pctf(margemPctMedia)}</div></div>
+    </div>`;
+
+  const rows = pedidos.map(p => {
+    const c = custoPedido(p.id);
+    if (!c) return `<tr onclick="editPedido('${p.id}')"><td>${p.orcamento}</td><td>${p.cliente}</td><td>${fmtDate(p.data_entrega)}</td>
+      <td colspan="5" style="color:var(--muted); font-size:.78rem">Sem data de entrega</td></tr>`;
+    const avs = [];
+    if (c.av.semM3Pool) avs.push('sem pool madeira');
+    if (c.av.semKgPool) avs.push('sem pool adesivo');
+    const kgAdeStr = c.kgAde!=null ? `${c.kgAde.toFixed(1)} kg<br><span style="color:var(--muted);font-size:.72rem">${c.taxaMedia!=null?c.taxaMedia.toFixed(2)+' kg/m³':''}</span>` : '—';
+    const custoStr = c.cT!=null
+      ? `${brl(c.cT)}<br><span style="color:var(--muted);font-size:.72rem">${c.m3B!=null?m3f(c.m3B)+' bruto':''}</span>`
+      : `<span style="color:var(--muted);font-size:.75rem">${avs.join(', ')}</span>`;
+    return `<tr onclick="editPedido('${p.id}')">
+      <td>${p.orcamento}</td>
+      <td><strong>${p.cliente}</strong></td>
+      <td>${fmtDate(p.data_entrega)}</td>
+      <td class="mono">${m3f(c.m3)}</td>
+      <td class="mono">${brl(p.valor_venda)}</td>
+      <td class="mono" style="font-size:.78rem">${kgAdeStr}</td>
+      <td class="mono" style="font-size:.78rem">${custoStr}</td>
+      <td class="mono ${c.mR!=null?(c.mR>=0?'pos':'neg'):''}">${c.mR!=null?brl(c.mR):'—'}</td>
+      <td>${c.mP!=null?`<span class="badge ${c.mP>=0?'badge-green':'badge-red'}">${pctf(c.mP)}</span>`:'—'}</td>
+    </tr>`;}).join('');
+
+  // Totals row (only for calculated pedidos)
+  const totalRow = comCalculo.length ? `
+    <tr style="border-top:2px solid var(--border); font-weight:600; background:#f8f7f5">
+      <td colspan="5" style="text-align:right; font-size:.75rem; color:var(--muted)">Total (${comCalculo.length} calculado${comCalculo.length>1?'s':''})</td>
+      <td class="mono">${brl(totalVenda)}</td>
+      <td class="mono">${brl(totalCusto)}</td>
+      <td class="mono ${totalMargem>=0?'pos':'neg'}">${brl(totalMargem)}</td>
+      <td><span class="badge ${(margemPctMedia||0)>=0?'badge-green':'badge-red'}">${pctf(margemPctMedia)}</span></td>
+    </tr>` : '';
+
+  document.getElementById('margens-content').innerHTML = kpis + `
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title">Detalhes por Pedido</span>
+        <button class="btn btn-sm btn-secondary" onclick="exportMargensCSV()">⬇ Exportar CSV</button>
+      </div>
+      <div class="card-body" style="padding-top:0">
+      <div class="tbl-wrap"><table>
+      <thead><tr><th>Orç.</th><th>Cliente</th><th>Entrega</th><th>m³</th><th>Venda</th><th>Adesivo</th><th>Custo</th><th>Margem R$</th><th>Margem %</th></tr></thead>
+      <tbody>${rows}</tbody>
+      ${totalRow ? '<tfoot>'+totalRow+'</tfoot>' : ''}
+      </table></div></div></div>`;
+}
+
+// ═══════════════════════════════════════════════════════
+// RENDER — BALANÇO
+// ═══════════════════════════════════════════════════════
+function renderBalanco() {
+  const meses = allMeses();
+  if (!meses.length) {
+    document.getElementById('balanco-content').innerHTML = '<div class="alert alert-info">Sem dados suficientes.</div>';
+    return;
+  }
+  const cards = meses.slice().reverse().map(m => {
+    const b = balancaMes(m);
+    const fatorBadge = b.fator!=null ? `<span class="badge badge-primary">${b.fator.toFixed(3)}</span>` : '<span class="badge badge-gray">—</span>';
+    const rendBadge  = b.rendimento!=null ? `${b.rendimento.toFixed(1)}%` : '—';
+    const serrBadge  = b.pctSerr!=null ? `${b.pctSerr.toFixed(1)}%` : '—';
+    return `<div class="card" style="margin-bottom:1rem">
+      <div class="card-head"><span class="card-title">${mesLabel(m)}</span>${fatorBadge}</div>
+      <div class="card-body">
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem">
+        <div>
+          <div style="font-size:.68rem; font-weight:600; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin-bottom:.4rem">Madeira</div>
+          <dl class="detail-box">
+            <dt>Entradas m³</dt><dd>${m3f(b.entM3)}</dd>
+            <dt>Entradas R$</dt><dd>${brl(b.entRS)}</dd>
+            <dt>Consumo físico</dt><dd>${b.consumo!=null?m3f(b.consumo):'—'}</dd>
+            <dt>→ Pedidos 1ª linha</dt><dd>${m3f(b.m3Ped)}</dd>
+            <dt>→ Var. 2ª linha</dt><dd>${b.v2a!=null?m3f(b.v2a):'—'}</dd>
+            <dt>→ Var. refilo</dt><dd>${b.vRef!=null?m3f(b.vRef):'—'}</dd>
+            <dt>→ Serragem</dt><dd>${b.serragem!=null?m3f(b.serragem):'—'}</dd>
+            <dt>Rendimento MLC</dt><dd>${rendBadge}</dd>
+            <dt>% Serragem</dt><dd>${serrBadge}</dd>
+            <dt>Travado estoque</dt><dd>${b.travado!=null?brl(b.travado):'—'}</dd>
+          </dl>
+        </div>
+        <div>
+          <div style="font-size:.68rem; font-weight:600; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin-bottom:.4rem">Adesivo TLP 40</div>
+          <dl class="detail-box">
+            <dt>Entradas kg</dt><dd>${kgf(b.adKg)}</dd>
+            <dt>Entradas R$</dt><dd>${brl(b.adRS)}</dd>
+            <dt>Consumo kg (est.)</dt><dd>${kgf(b.kgCons)}</dd>
+          </dl>
+        </div>
+      </div>
+      </div></div>`;}).join('');
+
+  document.getElementById('balanco-content').innerHTML = cards + renderReconciliacao();
+}
+
+// ═══════════════════════════════════════════════════════
+// RECONCILIAÇÃO DE CAIXA (SPEC §2.6)
+// ═══════════════════════════════════════════════════════
+function reconciliacaoData() {
+  const meses = allMeses();
+
+  // Compras por mês de recebimento
+  const comprasMes = meses.map(m => {
+    const mad = state.compras_madeira.filter(c => dateToMes(c.data_recebimento) === m);
+    const ade = state.compras_adesivo.filter(c => dateToMes(c.data_recebimento) === m);
+    const todas = [...mad, ...ade];
+    const totalReg  = todas.reduce((s,c) => s + c.valor_total, 0);
+    const totalPago = todas.filter(c => c.data_pagamento).reduce((s,c) => s + c.valor_total, 0);
+    return { mes: m, totalReg, totalPago, pendente: totalReg - totalPago };
+  }).filter(r => r.totalReg > 0);
+
+  // Pedidos — status de recebimento
+  const pedidosStatus = [...state.pedidos]
+    .sort((a,b) => (b.data_entrega||'').localeCompare(a.data_entrega||''))
+    .map(p => ({
+      id: p.id, orcamento: p.orcamento, cliente: p.cliente,
+      data_entrega: p.data_entrega, valor_venda: p.valor_venda||0,
+      data_sinal: p.data_sinal, data_final: p.data_final,
+      status: p.data_final ? 'quitado' : p.data_sinal ? 'sinal' : 'pendente'
+    }));
+
+  const totalVendas   = pedidosStatus.reduce((s,p) => s + p.valor_venda, 0);
+  const totalQuitado  = pedidosStatus.filter(p => p.status==='quitado').reduce((s,p) => s + p.valor_venda, 0);
+  const totalSinal    = pedidosStatus.filter(p => p.status==='sinal').reduce((s,p) => s + p.valor_venda, 0);
+  const totalPendente = pedidosStatus.filter(p => p.status==='pendente').reduce((s,p) => s + p.valor_venda, 0);
+
+  return { comprasMes, pedidosStatus, totalVendas, totalQuitado, totalSinal, totalPendente };
+}
+
+function renderReconciliacao() {
+  const d = reconciliacaoData();
+  if (!d.comprasMes.length && !d.pedidosStatus.length) return '';
+
+  const totalReg  = d.comprasMes.reduce((s,r) => s + r.totalReg, 0);
+  const totalPago = d.comprasMes.reduce((s,r) => s + r.totalPago, 0);
+  const gapCompras = totalReg - totalPago;
+
+  const comprasRows = d.comprasMes.map(r => {
+    const gapCls = r.pendente > 0.01 ? 'neg' : r.pendente < -0.01 ? 'pos' : '';
+    const gapTxt = r.pendente > 0.01 ? '(a pagar)' : r.pendente < -0.01 ? '(adiantado)' : '✓ quitado';
+    return `<tr>
+      <td><strong>${mesLabel(r.mes)}</strong></td>
+      <td class="mono">${brl(r.totalReg)}</td>
+      <td class="mono">${brl(r.totalPago)}</td>
+      <td class="mono ${gapCls}">${r.pendente !== 0 ? brl(Math.abs(r.pendente)) + ' ' : ''}${gapTxt}</td>
+    </tr>`;}).join('');
+
+  const pedRows = d.pedidosStatus.map(r => {
+    const sb = r.status==='quitado' ? '<span class="badge badge-green">Quitado</span>'
+      : r.status==='sinal' ? '<span class="badge badge-amber">Sinal recebido</span>'
+      : '<span class="badge badge-gray">Pendente</span>';
+    return `<tr onclick="editPedido('${r.id}')">
+      <td>${r.orcamento}</td><td>${r.cliente}</td>
+      <td>${fmtDate(r.data_entrega)}</td>
+      <td class="mono">${brl(r.valor_venda)}</td>
+      <td>${r.data_sinal ? fmtDate(r.data_sinal) : '—'}</td>
+      <td>${r.data_final ? fmtDate(r.data_final) : '—'}</td>
+      <td>${sb}</td>
+    </tr>`;}).join('');
+
+  return `
+    <div style="margin-top:1.5rem; border-top:2px dashed var(--border); padding-top:1.5rem">
+    <div style="font-size:.68rem; font-weight:600; text-transform:uppercase; letter-spacing:.12em; color:var(--accent); margin-bottom:1rem">Reconciliação de Caixa — Spec §2.6</div>
+
+    <div class="card" style="margin-bottom:1rem">
+      <div class="card-head"><span class="card-title">Compras — Registrado vs. Pago</span>
+        <span class="badge ${gapCompras>0.01?'badge-red':gapCompras<-0.01?'badge-green':'badge-primary'}" style="font-size:.72rem">
+          ${gapCompras>0.01?brl(gapCompras)+' a pagar':gapCompras<-0.01?'Adiantado':'Tudo quitado'}
+        </span>
+      </div>
+      <div class="card-body" style="padding-top:0">
+      <div class="tbl-wrap">
+      ${comprasRows ? `<table><thead><tr><th>Mês</th><th>Registrado</th><th>Pago</th><th>Saldo</th></tr></thead>
+        <tbody>${comprasRows}</tbody>
+        <tfoot><tr style="border-top:1px solid var(--border);font-weight:600">
+          <td>Total</td>
+          <td class="mono">${brl(totalReg)}</td>
+          <td class="mono">${brl(totalPago)}</td>
+          <td class="mono ${gapCompras>0.01?'neg':'pos'}">${gapCompras>0.01?brl(gapCompras)+' a pagar':'✓'}</td>
+        </tr></tfoot></table>` : '<div class="tbl-empty">Sem compras.</div>'}
+      </div>
+      <p style="font-size:.73rem; color:var(--muted); margin-top:.5rem">Preencha "Data Pagamento" nas compras para atualizar. Confronto com Conta Azul disponível na Fase 2.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><span class="card-title">Pedidos — Faturado vs. Recebido</span></div>
+      <div class="card-body">
+      <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:.7rem; margin-bottom:1rem">
+        <div class="kpi" style="box-shadow:none; border:1px solid var(--border); border-top:3px solid var(--primary)">
+          <div class="kpi-label">Total Faturado</div>
+          <div class="kpi-value" style="font-size:.95rem">${brl(d.totalVendas)}</div>
+        </div>
+        <div class="kpi" style="box-shadow:none; border:1px solid var(--border); border-top:3px solid var(--green-mid)">
+          <div class="kpi-label">Quitados</div>
+          <div class="kpi-value" style="font-size:.95rem; color:var(--green-mid)">${brl(d.totalQuitado)}</div>
+        </div>
+        <div class="kpi" style="box-shadow:none; border:1px solid var(--border); border-top:3px solid var(--accent)">
+          <div class="kpi-label">Sinal recebido</div>
+          <div class="kpi-value" style="font-size:.95rem; color:var(--accent)">${brl(d.totalSinal)}</div>
+        </div>
+        <div class="kpi" style="box-shadow:none; border:1px solid var(--border); border-top:3px solid var(--red)">
+          <div class="kpi-label">Sem recebimento</div>
+          <div class="kpi-value" style="font-size:.95rem; color:var(--red)">${brl(d.totalPendente)}</div>
+        </div>
+      </div>
+      <div class="tbl-wrap">
+      ${pedRows ? `<table><thead><tr><th>Orç.</th><th>Cliente</th><th>Entrega</th><th>Valor</th><th>Sinal em</th><th>Final em</th><th>Status</th></tr></thead><tbody>${pedRows}</tbody></table>`
+        : '<div class="tbl-empty">Sem pedidos.</div>'}
+      </div>
+      <p style="font-size:.73rem; color:var(--muted); margin-top:.5rem">Clique em um pedido para preencher as datas de recebimento (aba Pedidos).</p>
+      </div>
+    </div>
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════════
+// EXPORTAR MARGENS CSV
+// ═══════════════════════════════════════════════════════
+function exportMargensCSV() {
+  const headers = ['Orcamento','Cliente','Local','Data Entrega','m3 Aplainado','Valor Venda (R$)','Custo Madeira (R$)','Custo Adesivo (R$)','Custo Total (R$)','Margem R$','Margem %'];
+  const rows = [...state.pedidos]
+    .sort((a,b) => (b.data_entrega||'').localeCompare(a.data_entrega||''))
+    .map(p => {
+      const c = custoPedido(p.id);
+      return [
+        p.orcamento, p.cliente, p.local||'', p.data_entrega||'',
+        c ? c.m3.toFixed(3) : '',
+        (p.valor_venda||0).toFixed(2),
+        c?.cM != null ? c.cM.toFixed(2) : '',
+        c?.cA != null ? c.cA.toFixed(2) : '',
+        c?.cT != null ? c.cT.toFixed(2) : '',
+        c?.mR != null ? c.mR.toFixed(2) : '',
+        c?.mP != null ? c.mP.toFixed(2) : ''
+      ];
+    });
+  const csv = [headers, ...rows]
+    .map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(';'))
+    .join('\n');
+  const blob = new Blob(['﻿' + csv], {type:'text/csv;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'margens_' + today() + '.csv';
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
+}
+
+// ═══════════════════════════════════════════════════════
+// RENDER — DADOS
+// ═══════════════════════════════════════════════════════
+function renderDados() {
+  document.getElementById('dados-resumo').innerHTML = `
+    <dl class="detail-box" style="grid-template-columns: 1fr 1fr">
+      <dt>Compras madeira</dt><dd>${state.compras_madeira.length}</dd>
+      <dt>Compras adesivo</dt><dd>${state.compras_adesivo.length}</dd>
+      <dt>Pedidos</dt><dd>${state.pedidos.length}</dd>
+      <dt>Apontamentos mensais</dt><dd>${state.apontamentos_mensais.length}</dd>
+      <dt>Versão</dt><dd>${state.version}</dd>
+    </dl>`;
+}
+
+// ═══════════════════════════════════════════════════════
+// FORM HANDLERS — MADEIRA
+// ═══════════════════════════════════════════════════════
+function cancelEdit(entity) {
+  editId[entity] = null;
+  if (entity === 'madeira') {
+    document.getElementById('form-madeira').reset();
+    document.getElementById('title-madeira').textContent = 'Nova Compra';
+    document.getElementById('btn-del-madeira').style.display = 'none';
+    document.getElementById('hint-madeira').textContent = '';
+    document.getElementById('cm-rpm3').value = '—';
+    document.getElementById('cm-data').value = today();
+  } else if (entity === 'adesivo') {
+    document.getElementById('form-adesivo').reset();
+    document.getElementById('title-adesivo').textContent = 'Nova Compra';
+    document.getElementById('btn-del-adesivo').style.display = 'none';
+    document.getElementById('hint-adesivo').textContent = '';
+    document.getElementById('ca-rpkg').value = '—';
+    document.getElementById('ca-data').value = today();
+  } else if (entity === 'pedido') {
+    editId.pedido = null;
+    formItens = [];
+    document.getElementById('form-pedido').reset();
+    document.getElementById('title-pedido').textContent = 'Novo Pedido';
+    document.getElementById('btn-del-pedido').style.display = 'none';
+    document.getElementById('hint-pedido').textContent = '';
+    document.getElementById('p-especie').value = 'Eucalipto';
+    renderItemsTbl();
+  } else if (entity === 'estMensal') {
+    document.getElementById('form-est-mensal').reset();
+    document.getElementById('title-est-mensal').textContent = 'Novo Apontamento';
+    document.getElementById('btn-del-estmensal').style.display = 'none';
+    document.getElementById('hint-estmensal').textContent = '';
+  }
+}
+
+function saveMadeira(e) {
+  e.preventDefault();
+  const vol = parseFloat(document.getElementById('cm-volume').value);
+  const val = parseFloat(document.getElementById('cm-valor').value);
+  const rec = {
+    id: editId.madeira || uid(),
+    data_recebimento: document.getElementById('cm-data').value,
+    fornecedor: document.getElementById('cm-fornecedor').value.trim(),
+    nf: document.getElementById('cm-nf').value.trim(),
+    volume_m3: vol,
+    valor_total: val,
+    larguras: document.getElementById('cm-larguras').value.trim(),
+    data_pagamento: document.getElementById('cm-pagamento').value || null
+  };
+  if (editId.madeira) {
+    const i = state.compras_madeira.findIndex(c=>c.id===editId.madeira);
+    if (i>=0) state.compras_madeira[i] = rec;
+  } else {
+    state.compras_madeira.push(rec);
+  }
+  document.getElementById('hint-madeira').textContent = '✓ Salvo em ' + new Date().toLocaleTimeString('pt-BR');
+  editId.madeira = null;
+  document.getElementById('btn-del-madeira').style.display = 'none';
+  document.getElementById('title-madeira').textContent = 'Nova Compra';
+  renderMadeira();
+  // recalc rpm3
+  document.getElementById('cm-rpm3').value = vol ? brl(val/vol)+'/m³' : '—';
+}
+
+function editMadeira(id) {
+  const c = state.compras_madeira.find(x=>x.id===id);
+  if (!c) return;
+  editId.madeira = id;
+  document.getElementById('cm-data').value        = c.data_recebimento;
+  document.getElementById('cm-fornecedor').value  = c.fornecedor;
+  document.getElementById('cm-nf').value          = c.nf||'';
+  document.getElementById('cm-volume').value      = c.volume_m3;
+  document.getElementById('cm-valor').value       = c.valor_total;
+  document.getElementById('cm-rpm3').value        = c.volume_m3 ? brl(c.valor_total/c.volume_m3)+'/m³' : '—';
+  document.getElementById('cm-larguras').value    = c.larguras||'';
+  document.getElementById('cm-pagamento').value   = c.data_pagamento||'';
+  document.getElementById('title-madeira').textContent = 'Editando Compra';
+  document.getElementById('btn-del-madeira').style.display = '';
+  document.getElementById('hint-madeira').textContent = '';
+  document.getElementById('s-madeira').scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function deleteMadeira() {
+  if (!editId.madeira) return;
+  if (!confirm('Excluir esta compra de madeira?')) return;
+  state.compras_madeira = state.compras_madeira.filter(c=>c.id!==editId.madeira);
+  cancelEdit('madeira'); renderMadeira();
+}
+
+// live R$/m³
+document.getElementById('cm-volume').addEventListener('input', updateRpm3);
+document.getElementById('cm-valor').addEventListener('input', updateRpm3);
+function updateRpm3() {
+  const v = parseFloat(document.getElementById('cm-volume').value);
+  const r = parseFloat(document.getElementById('cm-valor').value);
+  document.getElementById('cm-rpm3').value = (v&&r) ? brl(r/v)+'/m³' : '—';
+}
+
+// ═══════════════════════════════════════════════════════
+// FORM HANDLERS — ADESIVO
+// ═══════════════════════════════════════════════════════
+function saveAdesivo(e) {
+  e.preventDefault();
+  const kg  = parseFloat(document.getElementById('ca-kg').value);
+  const val = parseFloat(document.getElementById('ca-valor').value);
+  const rec = {
+    id: editId.adesivo || uid(),
+    data_recebimento: document.getElementById('ca-data').value,
+    fornecedor: document.getElementById('ca-fornecedor').value.trim(),
+    nf: document.getElementById('ca-nf').value.trim(),
+    produto: document.getElementById('ca-produto').value,
+    kg, valor_total: val,
+    data_pagamento: document.getElementById('ca-pagamento').value || null
+  };
+  if (editId.adesivo) {
+    const i = state.compras_adesivo.findIndex(c=>c.id===editId.adesivo);
+    if (i>=0) state.compras_adesivo[i] = rec;
+  } else {
+    state.compras_adesivo.push(rec);
+  }
+  document.getElementById('hint-adesivo').textContent = '✓ Salvo em ' + new Date().toLocaleTimeString('pt-BR');
+  editId.adesivo = null;
+  document.getElementById('btn-del-adesivo').style.display = 'none';
+  document.getElementById('title-adesivo').textContent = 'Nova Compra';
+  renderAdesivo();
+}
+
+function editAdesivo(id) {
+  const c = state.compras_adesivo.find(x=>x.id===id);
+  if (!c) return;
+  editId.adesivo = id;
+  document.getElementById('ca-data').value       = c.data_recebimento;
+  document.getElementById('ca-fornecedor').value = c.fornecedor;
+  document.getElementById('ca-nf').value         = c.nf||'';
+  document.getElementById('ca-produto').value    = c.produto||'TLP_40';
+  document.getElementById('ca-kg').value         = c.kg;
+  document.getElementById('ca-valor').value      = c.valor_total;
+  document.getElementById('ca-rpkg').value       = c.kg ? brl(c.valor_total/c.kg)+'/kg' : '—';
+  document.getElementById('ca-pagamento').value  = c.data_pagamento||'';
+  document.getElementById('title-adesivo').textContent = 'Editando Compra';
+  document.getElementById('btn-del-adesivo').style.display = '';
+  document.getElementById('s-adesivo').scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function deleteAdesivo() {
+  if (!editId.adesivo) return;
+  if (!confirm('Excluir esta compra de adesivo?')) return;
+  state.compras_adesivo = state.compras_adesivo.filter(c=>c.id!==editId.adesivo);
+  cancelEdit('adesivo'); renderAdesivo();
+}
+
+document.getElementById('ca-kg').addEventListener('input', updateRpkg);
+document.getElementById('ca-valor').addEventListener('input', updateRpkg);
+function updateRpkg() {
+  const k = parseFloat(document.getElementById('ca-kg').value);
+  const r = parseFloat(document.getElementById('ca-valor').value);
+  document.getElementById('ca-rpkg').value = (k&&r) ? brl(r/k)+'/kg' : '—';
+}
+
+// ═══════════════════════════════════════════════════════
+// FORM HANDLERS — PEDIDOS + ITENS
+// ═══════════════════════════════════════════════════════
+function addItemRow() {
+  formItens.push({ id: uid(), desc:'', qtd:1, base_mm:0, altura_mm:0, comp_mm:0 });
+  renderItemsTbl();
+  // focus last desc
+  const rows = document.getElementById('items-tbody').querySelectorAll('tr');
+  if (rows.length) rows[rows.length-1].querySelector('input[data-field="desc"]')?.focus();
+}
+
+function removeItemRow(id) {
+  formItens = formItens.filter(i=>i.id!==id);
+  renderItemsTbl();
+}
+
+function renderItemsTbl() {
+  const tbody = document.getElementById('items-tbody');
+  tbody.innerHTML = formItens.map(it => `
+    <tr>
+      <td><input type="text" data-id="${it.id}" data-field="desc" value="${it.desc}" placeholder="Ex: Viga MLC 0 a 9m" style="min-width:140px" oninput="updateItem(this)"></td>
+      <td><input type="number" data-id="${it.id}" data-field="qtd" value="${it.qtd}" min="1" step="1" style="width:52px" oninput="updateItem(this)"></td>
+      <td><input type="number" data-id="${it.id}" data-field="base_mm" value="${it.base_mm}" min="0" step="1" style="width:64px" oninput="updateItem(this)"></td>
+      <td><input type="number" data-id="${it.id}" data-field="altura_mm" value="${it.altura_mm}" min="0" step="1" style="width:64px" oninput="updateItem(this)"></td>
+      <td><input type="number" data-id="${it.id}" data-field="comp_mm" value="${it.comp_mm}" min="0" step="1" style="width:80px" oninput="updateItem(this)"></td>
+      <td class="mono" id="m3-${it.id}">${m3f(m3Item(it))}</td>
+      <td><button type="button" class="btn btn-danger btn-xs" onclick="removeItemRow('${it.id}')">×</button></td>
+    </tr>`).join('');
+  updateItemsTotal();
+}
+
+function updateItem(input) {
+  const id    = input.dataset.id;
+  const field = input.dataset.field;
+  const it    = formItens.find(x=>x.id===id);
+  if (!it) return;
+  it[field] = field==='desc' ? input.value : (parseFloat(input.value)||0);
+  document.getElementById('m3-'+id).textContent = m3f(m3Item(it));
+  updateItemsTotal();
+}
+
+function updateItemsTotal() {
+  const total = formItens.reduce((s,i)=>s+m3Item(i),0);
+  document.getElementById('items-total').textContent = m3f(total);
+  document.getElementById('p-m3').value = m3f(total);
+}
+
+function savePedido(e) {
+  e.preventDefault();
+  const rec = {
+    id: editId.pedido || uid(),
+    orcamento: document.getElementById('p-orcamento').value.trim(),
+    cliente: document.getElementById('p-cliente').value.trim(),
+    local: document.getElementById('p-local').value.trim(),
+    especie: document.getElementById('p-especie').value,
+    data_entrega: document.getElementById('p-entrega').value || null,
+    valor_venda: parseFloat(document.getElementById('p-valor').value)||0,
+    data_sinal: document.getElementById('p-sinal').value || null,
+    data_final: document.getElementById('p-final').value || null,
+    obs: document.getElementById('p-obs').value.trim(),
+    itens: formItens.map(it => ({ id:it.id, desc:it.desc, qtd:it.qtd, base_mm:it.base_mm, altura_mm:it.altura_mm, comp_mm:it.comp_mm }))
+  };
+  if (editId.pedido) {
+    const i = state.pedidos.findIndex(p=>p.id===editId.pedido);
+    if (i>=0) state.pedidos[i] = rec;
+  } else {
+    state.pedidos.push(rec);
+  }
+  document.getElementById('hint-pedido').textContent = '✓ Salvo em ' + new Date().toLocaleTimeString('pt-BR');
+  editId.pedido = null;
+  document.getElementById('btn-del-pedido').style.display = 'none';
+  document.getElementById('title-pedido').textContent = 'Novo Pedido';
+  formItens = [];
+  renderItemsTbl();
+  renderPedidos();
+}
+
+function editPedido(id) {
+  const p = state.pedidos.find(x=>x.id===id);
+  if (!p) return;
+  editId.pedido = id;
+  document.getElementById('p-orcamento').value = p.orcamento;
+  document.getElementById('p-cliente').value   = p.cliente;
+  document.getElementById('p-local').value     = p.local||'';
+  document.getElementById('p-especie').value   = p.especie||'Eucalipto';
+  document.getElementById('p-entrega').value   = p.data_entrega||'';
+  document.getElementById('p-valor').value     = p.valor_venda;
+  document.getElementById('p-sinal').value     = p.data_sinal||'';
+  document.getElementById('p-final').value     = p.data_final||'';
+  document.getElementById('p-obs').value       = p.obs||'';
+  formItens = (p.itens||[]).map(it=>({...it}));
+  renderItemsTbl();
+  document.getElementById('title-pedido').textContent = 'Editando Pedido';
+  document.getElementById('btn-del-pedido').style.display = '';
+  document.getElementById('hint-pedido').textContent = '';
+  document.getElementById('s-pedidos').scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function deletePedido() {
+  if (!editId.pedido) return;
+  if (!confirm('Excluir este pedido?')) return;
+  state.pedidos = state.pedidos.filter(p=>p.id!==editId.pedido);
+  cancelEdit('pedido'); renderPedidos();
+}
+
+
+// ═══════════════════════════════════════════════════════
+// FORM HANDLERS — ESTOQUE MENSAL
+// ═══════════════════════════════════════════════════════
+function saveEstMensal(e) {
+  e.preventDefault();
+  const mes = document.getElementById('em-mes').value;
+  const rec = {
+    id: editId.estMensal || uid(),
+    mes_referencia: mes,
+    m3_2a_linha: parseFloat(document.getElementById('em-2a').value)||0,
+    m3_refilo: parseFloat(document.getElementById('em-refilo').value)||0,
+    m3_bruto_remanescente: parseFloat(document.getElementById('em-bruto').value)||0,
+    responsavel: document.getElementById('em-resp').value.trim()||'Eduardo',
+    data_apontamento: new Date().toISOString()
+  };
+  // replace same month (only one per month allowed)
+  const existing = state.apontamentos_mensais.findIndex(a => a.mes_referencia===mes && a.id!==editId.estMensal);
+  if (existing>=0 && !editId.estMensal) {
+    if (!confirm(`Já existe apontamento para ${mesLabel(mes)}. Substituir?`)) return;
+    state.apontamentos_mensais.splice(existing, 1);
+  }
+  if (editId.estMensal) {
+    const i = state.apontamentos_mensais.findIndex(a=>a.id===editId.estMensal);
+    if (i>=0) state.apontamentos_mensais[i] = rec;
+  } else {
+    state.apontamentos_mensais.push(rec);
+  }
+  document.getElementById('hint-estmensal').textContent = '✓ Salvo em ' + new Date().toLocaleTimeString('pt-BR');
+  editId.estMensal = null;
+  document.getElementById('btn-del-estmensal').style.display = 'none';
+  document.getElementById('title-est-mensal').textContent = 'Novo Apontamento';
+  renderEstMensal();
+}
+
+function editEstMensal(id) {
+  const a = state.apontamentos_mensais.find(x=>x.id===id);
+  if (!a) return;
+  editId.estMensal = id;
+  document.getElementById('em-mes').value    = a.mes_referencia;
+  document.getElementById('em-2a').value     = a.m3_2a_linha;
+  document.getElementById('em-refilo').value = a.m3_refilo;
+  document.getElementById('em-bruto').value  = a.m3_bruto_remanescente;
+  document.getElementById('em-resp').value   = a.responsavel||'';
+  document.getElementById('title-est-mensal').textContent = 'Editando Apontamento';
+  document.getElementById('btn-del-estmensal').style.display = '';
+  document.getElementById('s-est-mensal').scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function deleteEstMensal() {
+  if (!editId.estMensal) return;
+  if (!confirm('Excluir este apontamento?')) return;
+  state.apontamentos_mensais = state.apontamentos_mensais.filter(a=>a.id!==editId.estMensal);
+  cancelEdit('estMensal'); renderEstMensal();
+}
+
+// ═══════════════════════════════════════════════════════
+// FORM HANDLERS — ESTOQUE INICIAL
+// ═══════════════════════════════════════════════════════
+function saveEstInicial(e) {
+  e.preventDefault();
+  state.estoque_inicial = {
+    m3_bruto_pool:       parseFloat(document.getElementById('ei-bruto').value)||0,
+    r_m3_bruto:          parseFloat(document.getElementById('ei-rpm3').value)||0,
+    m3_2a_linha:         parseFloat(document.getElementById('ei-2a').value)||0,
+    m3_refilo:           parseFloat(document.getElementById('ei-refilo').value)||0,
+    taxa_kg_m3_padrao:   parseFloat(document.getElementById('ei-taxa').value)||0.25,
+    espessura_lamela_mm: parseFloat(document.getElementById('ei-lamela').value)||30.07,
+    r_kg_adesivo:        parseFloat(document.getElementById('ei-rpkg').value)||0
+  };
+  document.getElementById('hint-estinic').textContent = '✓ Salvo em ' + new Date().toLocaleTimeString('pt-BR');
+}
+
+// ═══════════════════════════════════════════════════════
+// IMPORT / EXPORT
+// ═══════════════════════════════════════════════════════
+function exportJSON() {
+  const json = JSON.stringify(state, null, 2);
+  const blob = new Blob([json], {type:'application/json'});
+  const url  = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'custo_real_' + today() + '.json';
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
+}
+
+function importJSON(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    try {
+      const data = JSON.parse(ev.target.result);
+      // Detecta seed pelo campo "compras" (array vazio) e ausência de compras_madeira
+      const isSeed = data.pedidos && !data.compras_madeira && (data.compras !== undefined || data.lastSaved);
+      if (isSeed) {
+        applySeed(data);
+      } else if (data.version && data.compras_madeira !== undefined) {
+        // App format — tem compras_madeira
+        if (!confirm('Importar vai substituir TODOS os dados atuais. Continuar?')) return;
+        applyFull(data);
+      } else if (data.pedidos) {
+        // Qualquer JSON com pedidos, trata como seed
+        applySeed(data);
+      } else {
+        alert('Formato de arquivo não reconhecido.');
+      }
+    } catch(err) {
+      alert('Erro ao ler o arquivo: ' + err.message);
+    }
+    input.value = '';
+  };
+  reader.readAsText(file);
+}
+
+function applySeed(data) {
+  let addedPed = 0, addedMad = 0, addedAde = 0, updatedEI = false;
+
+  // Estoque inicial — aplica apenas se o seed trouxer e o atual estiver zerado
+  if (data.estoque_inicial) {
+    const ei = state.estoque_inicial;
+    const estaZerado = !ei.m3_bruto_pool && !ei.r_m3_bruto;
+    if (estaZerado) {
+      state.estoque_inicial = { ...emptyState().estoque_inicial, ...data.estoque_inicial };
+      updatedEI = true;
+    }
+  }
+
+  (data.compras_madeira||[]).forEach(raw => {
+    const dup = state.compras_madeira.find(c =>
+      c.nf === raw.nf && c.fornecedor === raw.fornecedor &&
+      Math.abs((c.volume_m3||0) - (raw.volume_m3||0)) < 0.001);
+    if (dup) return;
+    state.compras_madeira.push({ id: uid(), larguras:'', data_pagamento:'', ...raw });
+    addedMad++;
+  });
+
+  (data.compras_adesivo||[]).forEach(raw => {
+    const dup = state.compras_adesivo.find(c =>
+      c.nf === raw.nf && c.fornecedor === raw.fornecedor &&
+      Math.abs((c.kg||0) - (raw.kg||0)) < 0.1);
+    if (dup) return;
+    state.compras_adesivo.push({ id: uid(), data_pagamento:'', ...raw });
+    addedAde++;
+  });
+
+  (data.pedidos||[]).forEach(raw => {
+    if (state.pedidos.find(p=>p.id===raw.id)) return;
+    const itens = (raw.itens||[])
+      .filter(it => it.entra_pool_eucalipto !== false)
+      .map(it => ({
+        id: uid(),
+        desc: it.desc || it.descricao || '',
+        qtd: it.qtd || 1,
+        base_mm:  it.base_mm  || it.base  || 0,
+        altura_mm: it.altura_mm || it.altura || 0,
+        comp_mm:  it.comp_mm  || it.comprimento_mm || it.comp || 0
+      }));
+    state.pedidos.push({
+      id: raw.id || uid(),
+      orcamento: raw.orcamento||'',
+      cliente: raw.cliente||'',
+      local: raw.local||raw.local_obra||'',
+      especie: raw.especie||'Eucalipto',
+      data_entrega: raw.dataEntrega||raw.data_entrega||null,
+      valor_venda: raw.valorVenda||raw.valor_venda||0,
+      data_sinal: raw.dataSinal||raw.data_sinal||null,
+      data_final: raw.dataFinal||raw.data_final||null,
+      obs: raw.observacoes||raw.obs||'',
+      itens
+    });
+    addedPed++;
+  });
+
+  let addedApt = 0;
+  (data.apontamentos_mensais||[]).forEach(raw => {
+    const dup = state.apontamentos_mensais.find(a => a.mes_referencia === raw.mes_referencia);
+    if (dup) return;
+    state.apontamentos_mensais.push({
+      id: uid(), responsavel:'Eduardo',
+      data_apontamento: new Date().toISOString(), ...raw
+    });
+    addedApt++;
+  });
+
+  const parts = [];
+  if (updatedEI) parts.push('estoque inicial 01/01/2026');
+  if (addedPed)  parts.push(`${addedPed} pedido(s)`);
+  if (addedMad)  parts.push(`${addedMad} compra(s) de madeira`);
+  if (addedAde)  parts.push(`${addedAde} compra(s) de adesivo`);
+  if (addedApt)  parts.push(`${addedApt} apontamento(s) mensal`);
+  alert(parts.length ? `Importado: ${parts.join(', ')}.` : 'Nenhum novo registro — todos já existem.');
+  renderTab(currentTab);
+}
+
+function applyFull(data) {
+  state = { ...emptyState(), ...data };
+  // garante arrays
+  ['compras_madeira','compras_adesivo','pedidos','apontamentos_mensais']
+    .forEach(k => { if (!Array.isArray(state[k])) state[k] = []; });
+  renderTab(currentTab);
+  alert('Dados importados com sucesso.');
+}
+
+function resetAll() {
+  if (!confirm('Zerar TODOS os dados? Esta ação é irreversível.')) return;
+  if (!confirm('Confirmar: apagar tudo?')) return;
+  state = emptyState();
+  renderTab(currentTab);
+}
+
+// ═══════════════════════════════════════════════════════
+// NF-e XML IMPORT
+// ═══════════════════════════════════════════════════════
+
+function importNFe(input) {
+  const files = Array.from(input.files);
+  if (!files.length) return;
+  let all = [], done = 0;
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const recs = parseNFeXML(ev.target.result, file.name);
+      all = all.concat(recs);
+      if (++done === files.length) {
+        if (!all.length) alert('Nenhum produto reconhecido como madeira ou adesivo nos arquivos XML.\n\nO sistema procura por palavras como "eucalipto", "madeira", "tlp", "adesivo" no nome do produto.');
+        else showImportPreview(all, 'nfe');
+      }
+    };
+    reader.readAsText(file);
+  });
+  input.value = '';
+}
+
+function parseNFeXML(xmlStr, filename) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(xmlStr, 'application/xml');
+  if (doc.querySelector('parsererror')) { console.warn('XML inválido:', filename); return []; }
+
+  const g = (el, tag) => {
+    const found = el.getElementsByTagNameNS('*', tag)[0];
+    return found ? found.textContent.trim() : '';
+  };
+
+  const dhEmi = g(doc,'dhEmi') || g(doc,'dEmi');
+  const data_recebimento = dhEmi ? dhEmi.slice(0,10) : today();
+  const nNF = g(doc,'nNF');
+  // emitente = primeiro xNome (fornecedor)
+  const emit = doc.getElementsByTagNameNS('*','emit')[0] || doc.getElementsByTagNameNS('*','emitente')[0];
+  const fornecedor = emit ? g(emit,'xNome') : g(doc,'xNome');
+  const vNF = parseFloat(g(doc,'vNF')) || 0;
+
+  const dets = Array.from(doc.getElementsByTagNameNS('*','det'));
+  const records = [];
+
+  if (!dets.length) {
+    // NF sem det — tenta extrair produto direto
+    const xProd = g(doc,'xProd');
+    const tipo = detectTipoNFe(xProd, fornecedor);
+    if (tipo) records.push(buildNFeRecord(tipo, data_recebimento, fornecedor, nNF, g(doc,'qCom'), g(doc,'uCom'), vNF, xProd));
+    return records;
+  }
+
+  dets.forEach(det => {
+    const xProd = g(det,'xProd');
+    const qCom  = parseFloat(g(det,'qCom')) || 0;
+    const uCom  = g(det,'uCom').toUpperCase();
+    const vProd = parseFloat(g(det,'vProd')) || 0;
+    const tipo  = detectTipoNFe(xProd, fornecedor);
+    if (!tipo) return;
+    const valorItem = vProd || (dets.length === 1 ? vNF : 0);
+    records.push(buildNFeRecord(tipo, data_recebimento, fornecedor, nNF, qCom, uCom, valorItem, xProd));
+  });
+
+  // Se só um item, usa total da NF
+  if (records.length === 1 && vNF > 0) records[0].valor_total = vNF;
+  return records;
+}
+
+function detectTipoNFe(xProd, fornecedor) {
+  const t = (xProd + ' ' + fornecedor).toLowerCase();
+  if (/eucalipto|madeira|bruto|bruta|pinus|tora|serraria|pranch|serrad/.test(t)) return 'madeira';
+  if (/tlp|adesivo|birka|elastan|kemmsies|pur\b|poliuretano|cola\b/.test(t)) return 'adesivo';
+  return null;
+}
+
+function buildNFeRecord(tipo, data, forn, nf, qCom, uCom, valor, xProd) {
+  const q = parseFloat(qCom) || 0;
+  const base = { _tipo: tipo, _produto: xProd, data_recebimento: data, fornecedor: forn, nf, valor_total: valor };
+  if (tipo === 'madeira') return { ...base, volume_m3: q, larguras: '', data_pagamento: '' };
+  // Adhesive: IBC (~1100 kg container) and TM (metric ton = ~200 kg drum) have qCom=1
+  // Extract actual kg from product description text
+  let kg = q;
+  const uUp = String(uCom||'').toUpperCase();
+  if (uUp === 'IBC' || uUp === 'TM') {
+    const mKg = String(xProd).match(/[\d.]+,?\d*\s*kg/i);
+    if (mKg) kg = parseNum(mKg[0]);
+    else kg = uUp === 'IBC' ? 1100 : 200;
+  }
+  const prodKey = /tlp[\s._-]?10\b/i.test(xProd) ? 'TLP_10' : 'TLP_40';
+  return { ...base, produto: prodKey, kg, data_pagamento: '' };
+}
+
+// ═══════════════════════════════════════════════════════
+// PLANILHA CSV / XLSX IMPORT
+// ═══════════════════════════════════════════════════════
+
+function importPlanilha(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const tipo = document.getElementById('imp-sheet-tipo').value;
+  const reader = new FileReader();
+
+  if (file.name.toLowerCase().endsWith('.csv')) {
+    reader.onload = ev => processSheetRows(parseCSV(ev.target.result), tipo);
+    reader.readAsText(file, 'UTF-8');
+  } else {
+    reader.onload = ev => {
+      try {
+        if (typeof XLSX === 'undefined') { alert('SheetJS não carregado — verifique conexão com internet e recarregue a página.'); return; }
+        const wb = XLSX.read(new Uint8Array(ev.target.result), { type:'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(ws, { defval:'' });
+        processSheetRows(rows, tipo);
+      } catch(err) { alert('Erro ao ler planilha: ' + err.message); }
+    };
+    reader.readAsArrayBuffer(file);
+  }
+  input.value = '';
+}
+
+function parseCSV(text) {
+  const lines = text.replace(/\r/g,'').split('\n').filter(l => l.trim());
+  if (lines.length < 2) return [];
+  const headers = splitCSVLine(lines[0]).map(h => h.trim().replace(/^"|"$/g,''));
+  return lines.slice(1).map(line => {
+    const vals = splitCSVLine(line);
+    const obj = {};
+    headers.forEach((h,i) => { obj[h] = (vals[i]||'').trim().replace(/^"|"$/g,''); });
+    return obj;
+  }).filter(r => Object.values(r).some(v => v));
+}
+
+function splitCSVLine(line) {
+  const res = []; let cur = '', inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (c === '"') { inQ = !inQ; continue; }
+    if ((c === ',' || c === ';' || c === '\t') && !inQ) { res.push(cur); cur = ''; continue; }
+    cur += c;
+  }
+  res.push(cur);
+  return res;
+}
+
+function colMap(row, aliases) {
+  const entries = Object.entries(row);
+  for (const al of aliases) {
+    const aLow = al.toLowerCase().replace(/[\s_-]/g,'');
+    const found = entries.find(([k]) => {
+      const kLow = k.toLowerCase().replace(/[\s_-]/g,'');
+      return kLow === aLow || kLow.includes(aLow) || aLow.includes(kLow);
+    });
+    if (found && found[1] !== '') return found[1];
+  }
+  return '';
+}
+
+function normDate(s) {
+  if (!s) return '';
+  s = String(s).trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const m1 = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (m1) return `${m1[3]}-${m1[2].padStart(2,'0')}-${m1[1].padStart(2,'0')}`;
+  const m2 = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2})$/);
+  if (m2) return `20${m2[3]}-${m2[2].padStart(2,'0')}-${m2[1].padStart(2,'0')}`;
+  // Excel serial
+  const n = parseFloat(s);
+  if (!isNaN(n) && n > 40000 && n < 60000) {
+    const d = new Date((n - 25569) * 86400 * 1000);
+    return d.toISOString().slice(0,10);
+  }
+  return '';
+}
+
+function parseNum(s) {
+  if (s === '' || s == null) return 0;
+  const clean = String(s).replace(/[R$\s%]/g,'').replace(/\./g,'').replace(',','.');
+  return parseFloat(clean) || 0;
+}
+
+function processSheetRows(rows, tipo) {
+  if (!rows.length) { alert('Planilha vazia ou sem linhas reconhecidas.'); return; }
+  const records = [];
+
+  rows.forEach(row => {
+    if (tipo === 'madeira') {
+      const data = normDate(colMap(row,['data_recebimento','data recebimento','data entrada','data','date','entrada']));
+      const forn = colMap(row,['fornecedor','supplier','vendedor','serraria','origem']);
+      const nf   = colMap(row,['nf','nota fiscal','nota','nf numero','numero nf','invoice']);
+      const vol  = parseNum(colMap(row,['volume_m3','volume','m3','m³','metros cubicos','qty','quantidade','quant','cubagem']));
+      const val  = parseNum(colMap(row,['valor_total','valor total','valor','total','preco','preço','price','r$','vl total']));
+      const larg = colMap(row,['larguras','largura','width','bitola']);
+      const pag  = normDate(colMap(row,['data_pagamento','pagamento','pago em','pago','vencimento']));
+      if (!forn && !val) return;
+      records.push({ _tipo:'madeira', data_recebimento:data||today(), fornecedor:forn||'(importado)', nf, volume_m3:vol, valor_total:val, larguras:larg, data_pagamento:pag });
+
+    } else if (tipo === 'adesivo') {
+      const data = normDate(colMap(row,['data_recebimento','data recebimento','data','date','entrada']));
+      const forn = colMap(row,['fornecedor','supplier','fabricante','birka']);
+      const nf   = colMap(row,['nf','nota fiscal','nota']);
+      const kg   = parseNum(colMap(row,['kg','quilos','quilogramas','quantidade','qty','peso','kilos']));
+      const val  = parseNum(colMap(row,['valor_total','valor total','valor','total','preco','preço','price','r$']));
+      const prod = colMap(row,['produto','product','tipo','item']);
+      const pag  = normDate(colMap(row,['data_pagamento','pagamento','pago em','vencimento']));
+      if (!forn && !val) return;
+      records.push({ _tipo:'adesivo', data_recebimento:data||today(), fornecedor:forn||'(importado)', nf, produto:prod||'TLP_40', kg, valor_total:val, data_pagamento:pag });
+
+    } else if (tipo === 'pedidos') {
+      const orc = colMap(row,['orcamento','orçamento','numero','nro','no','pedido','orcamento numero','orç']);
+      const cli = colMap(row,['cliente','client','nome','razao social','razão social','comprador']);
+      const loc = colMap(row,['local','local obra','obra','endereco','endereço','cidade','local_obra']);
+      const ent = normDate(colMap(row,['data_entrega','data entrega','entrega','delivery','data','previsao','previsão']));
+      const val = parseNum(colMap(row,['valor_venda','valor venda','valor nf','valor','total','preco','preço','venda','r$']));
+      if (!cli && !val) return;
+      records.push({ _tipo:'pedido', orcamento:orc||'—', cliente:cli||'(importado)', local:loc||'', data_entrega:ent||null, valor_venda:val||0, especie:'Eucalipto', obs:'', itens:[] });
+    }
+  });
+
+  if (!records.length) {
+    alert('Nenhum registro reconhecido. Verifique se as colunas têm nomes esperados (ex: fornecedor, valor_total, data_recebimento).\n\nO sistema procura pelos nomes em português e inglês, com espaço ou underline.');
+    return;
+  }
+  showImportPreview(records, 'planilha');
+}
+
+// ═══════════════════════════════════════════════════════
+// MODAL DE PRÉ-VISUALIZAÇÃO
+// ═══════════════════════════════════════════════════════
+let pendingImports = [];
+
+function showImportPreview(records, origem) {
+  pendingImports = records;
+  const tipo = records[0]._tipo;
+  const total = records.length;
+  const tipoLabel = { madeira:'compras de madeira', adesivo:'compras de adesivo', pedido:'pedidos' }[tipo] || 'registros';
+
+  document.getElementById('imp-modal-title').textContent = `Pré-visualização — ${total} ${tipoLabel}`;
+  document.getElementById('imp-modal-confirm').textContent = `Importar ${total} registro(s)`;
+
+  let cols, rows, warns = '';
+
+  if (tipo === 'madeira') {
+    cols = ['Data','Fornecedor','NF','m³','Valor Total','Produto detectado'];
+    rows = records.map(r => [
+      fmtDate(r.data_recebimento), r.fornecedor, r.nf||'—',
+      r.volume_m3 ? m3f(r.volume_m3) : '<span style="color:var(--accent)">⚠ 0 — ajustar</span>',
+      brl(r.valor_total), r._produto||'madeira bruta'
+    ]);
+    if (records.some(r => !r.volume_m3)) warns = '<div class="alert alert-warn" style="margin-bottom:.7rem">⚠ Registros com m³ = 0 serão importados — corrija o volume depois na aba Madeira.</div>';
+
+  } else if (tipo === 'adesivo') {
+    cols = ['Data','Fornecedor','NF','Produto','kg','Valor Total'];
+    rows = records.map(r => [
+      fmtDate(r.data_recebimento), r.fornecedor, r.nf||'—', r.produto,
+      r.kg ? kgf(r.kg) : '<span style="color:var(--accent)">⚠ 0 — ajustar</span>',
+      brl(r.valor_total)
+    ]);
+    if (records.some(r => !r.kg)) warns = '<div class="alert alert-warn" style="margin-bottom:.7rem">⚠ Registros com kg = 0 serão importados — corrija depois na aba Adesivo.</div>';
+
+  } else {
+    cols = ['Orç.','Cliente','Local','Entrega','Valor Venda'];
+    rows = records.map(r => [r.orcamento, r.cliente, r.local||'—', r.data_entrega ? fmtDate(r.data_entrega) : '—', brl(r.valor_venda)]);
+    warns = '<div class="alert alert-info" style="margin-bottom:.7rem">ℹ Pedidos importados sem itens — adicione as peças (vigas, pilares...) manualmente na aba Pedidos.</div>';
+  }
+
+  const thead = '<tr>' + cols.map(c=>`<th>${c}</th>`).join('') + '</tr>';
+  const tbody = rows.map(r => '<tr>' + r.map(c=>`<td>${c}</td>`).join('') + '</tr>').join('');
+  document.getElementById('imp-modal-body').innerHTML = warns +
+    `<div class="tbl-wrap"><table><thead>${thead}</thead><tbody>${tbody}</tbody></table></div>`;
+
+  document.getElementById('imp-modal').style.display = 'flex';
+}
+
+function cancelImport() {
+  pendingImports = [];
+  document.getElementById('imp-modal').style.display = 'none';
+}
+
+function confirmImport() {
+  if (!pendingImports.length) return;
+  const tipo = pendingImports[0]._tipo;
+  let added = 0, skipped = 0;
+
+  pendingImports.forEach(r => {
+    const { _tipo, _produto, ...rec } = r;
+    rec.id = uid();
+
+    if (tipo === 'madeira') {
+      state.compras_madeira.push(rec); added++;
+    } else if (tipo === 'adesivo') {
+      state.compras_adesivo.push(rec); added++;
+    } else if (tipo === 'pedido') {
+      const dup = state.pedidos.find(p => p.orcamento === rec.orcamento && p.cliente === rec.cliente);
+      if (dup) { skipped++; return; }
+      state.pedidos.push(rec); added++;
+    }
+  });
+
+  cancelImport();
+  const msg = skipped
+    ? `${added} importado(s). ${skipped} ignorado(s) por já existir (mesmo orçamento + cliente).`
+    : `${added} registro(s) importado(s) com sucesso.`;
+  alert(msg);
+  renderTab(currentTab);
+}
+
+// ═══════════════════════════════════════════════════════
+// SEED 2026 — NFs pré-extraídas dos XMLs + Romaneio Giancarlos
+// ═══════════════════════════════════════════════════════
+const SEED_2026 = {
+  // Estoque inicial 01/01/2026 — ~9,5 m³ bruto remanescente (estimativa).
+  // r_m3_bruto usa proxy R$1.500/m³ (mesma referência LAMINADOS MG 2026) — corrigir se houver NF real.
+  estoque_inicial: {
+    m3_bruto_pool: 9.5,
+    r_m3_bruto: 1500,
+    m3_2a_linha: 0,
+    m3_refilo: 0,
+    taxa_kg_m3_padrao: 0.25,
+    espessura_lamela_mm: 30.07,
+    r_kg_adesivo: 0
+  },
+  compras_madeira: [
+    // NF 450 — 2 itens com preços diferentes na mesma NF
+    { nf:"450", data_recebimento:"2026-01-27", fornecedor:"LAMINADOS MG LTDA", volume_m3:6.265, valor_total:9397.50, larguras:"Eucalipto 40mm var.", data_pagamento:"" },
+    { nf:"450", data_recebimento:"2026-01-27", fornecedor:"LAMINADOS MG LTDA", volume_m3:2.898, valor_total:6346.62, larguras:"Eucalipto 40mm var.", data_pagamento:"" },
+    { nf:"453", data_recebimento:"2026-02-09", fornecedor:"LAMINADOS MG LTDA", volume_m3:3.119,  valor_total:4678.50,  larguras:"Eucalipto 40mm var.", data_pagamento:"" },
+    { nf:"486", data_recebimento:"2026-02-25", fornecedor:"LAMINADOS MG LTDA", volume_m3:18.904, valor_total:28356.00, larguras:"Eucalipto 40mm var.", data_pagamento:"" },
+    { nf:"518", data_recebimento:"2026-03-27", fornecedor:"LAMINADOS MG LTDA", volume_m3:25.281, valor_total:37921.50, larguras:"Eucalipto 40mm var.", data_pagamento:"" },
+    { nf:"541", data_recebimento:"2026-04-16", fornecedor:"LAMINADOS MG LTDA", volume_m3:18.877, valor_total:28315.50, larguras:"Eucalipto 40mm var.", data_pagamento:"" }
+  ],
+  compras_adesivo: [
+    // NF 71 Kemmsies/Birka out/2025 — TLP 40 (1 IBC = 1.100 kg). Data estimada: corrigir com NF real.
+    { nf:"71",  data_recebimento:"2025-10-15", fornecedor:"Martin Oliver Kemmsies", produto:"TLP_40", kg:1100, valor_total:91795.00, data_pagamento:"" },
+    // NF 155 Kemmsies/Birka — apenas TLP 40 (1 IBC = 1.100 kg). TLP 10 fora de escopo MVP.
+    { nf:"155", data_recebimento:"2026-03-13", fornecedor:"Martin Oliver Kemmsies", produto:"TLP_40", kg:1100, valor_total:91795.00, data_pagamento:"" }
+  ],
+  pedidos: [
+    {
+      id: "giancarlos-1108",
+      orcamento: "1108",
+      cliente: "Giancarlos Zecca",
+      local: "Ilhabela",
+      especie: "Eucalipto",
+      data_entrega: "2026-04-21",
+      valor_venda: 126042.84,
+      obs: "MLC Eucalipto + S4S Eucalipto. Itens Pinus excluídos do pool.",
+      itens: [
+        { desc:"Cunha MLC",   qtd:10, base:82,  altura:128, comp:1865  },
+        { desc:"Cunha MLC",   qtd:7,  base:82,  altura:128, comp:3060  },
+        { desc:"Cunha MLC",   qtd:7,  base:82,  altura:128, comp:3868  },
+        { desc:"Tabeira MLC", qtd:4,  base:82,  altura:224, comp:3746  },
+        { desc:"Tabeira MLC", qtd:4,  base:82,  altura:224, comp:2789  },
+        { desc:"Cunha MLC",   qtd:4,  base:82,  altura:240, comp:2423  },
+        { desc:"Pilar MLC",   qtd:10, base:142, altura:142, comp:2910  },
+        { desc:"Viga MLC",    qtd:8,  base:142, altura:544, comp:1743  },
+        { desc:"Viga MLC",    qtd:8,  base:142, altura:544, comp:1778  },
+        { desc:"Viga MLC",    qtd:2,  base:142, altura:544, comp:3313  },
+        { desc:"Viga MLC",    qtd:2,  base:142, altura:544, comp:3793  },
+        { desc:"Viga MLC",    qtd:3,  base:142, altura:544, comp:10938 },
+        { desc:"Viga MLC",    qtd:5,  base:142, altura:544, comp:11188 },
+        { desc:"Viga MLC",    qtd:2,  base:142, altura:544, comp:11222 },
+        { desc:"Madeira S4S", qtd:28, base:72,  altura:120, comp:1750  },
+        { desc:"Madeira S4S", qtd:20, base:72,  altura:120, comp:2000  }
+      ]
+    },
+    {
+      id: "carpinteiro-1205",
+      orcamento: "1205",
+      cliente: "Eu Sou o Carpinteiro",
+      local: "Paulínia - SP",
+      especie: "Eucalipto",
+      data_entrega: "2026-04-21",
+      valor_venda: 25961.94,
+      obs: "Orç. 1205 — MLC Eucalipto. R$/m³ médio R$7.481.",
+      itens: [
+        { desc:"Pilar MLC",        qtd:1,  base:150, altura:150, comp:4000 },
+        { desc:"Pilar MLC",        qtd:2,  base:150, altura:150, comp:3100 },
+        { desc:"Barrote MLC",      qtd:1,  base:60,  altura:400, comp:6900 },
+        { desc:"Barrote MLC",      qtd:2,  base:60,  altura:400, comp:5700 },
+        { desc:"Viga MLC 0 a 9m",  qtd:2,  base:120, altura:400, comp:5700 },
+        { desc:"Viga MLC 0 a 9m",  qtd:1,  base:100, altura:300, comp:6900 },
+        { desc:"Barrote MLC",      qtd:3,  base:50,  altura:200, comp:5600 },
+        { desc:"Barrote MLC",      qtd:2,  base:60,  altura:160, comp:6600 },
+        { desc:"Peça Plainada MLC",qtd:50, base:40,  altura:40,  comp:1000 },
+        { desc:"Barrote MLC",      qtd:2,  base:30,  altura:300, comp:5700 },
+        { desc:"Barrote MLC",      qtd:2,  base:30,  altura:300, comp:7000 },
+        { desc:"Peça Plainada MLC",qtd:66, base:40,  altura:70,  comp:5000 },
+        { desc:"Peça MLC",         qtd:2,  base:100, altura:400, comp:6500 }
+      ]
+    },
+    {
+      id: "antonio-mario-1123",
+      orcamento: "1123",
+      cliente: "Marcenaria Carvalho — Mario",
+      local: "Itu - SP",
+      especie: "Eucalipto",
+      data_entrega: "2026-04-21",
+      valor_venda: 20950.41,
+      obs: "Orç. 1123 — MLC Eucalipto. R$/m³ médio R$7.694.",
+      itens: [
+        { desc:"Viga MLC 0 a 9m", qtd:1,  base:120, altura:420, comp:6540  },
+        { desc:"Viga MLC 0 a 9m", qtd:1,  base:120, altura:420, comp:10230 },
+        { desc:"Viga MLC 0 a 9m", qtd:11, base:60,  altura:200, comp:7660  },
+        { desc:"Viga MLC 0 a 9m", qtd:11, base:40,  altura:100, comp:7500  },
+        { desc:"Viga MLC 0 a 9m", qtd:10, base:40,  altura:200, comp:950   },
+        { desc:"Viga MLC 0 a 9m", qtd:1,  base:30,  altura:90,  comp:10030 },
+        { desc:"Viga MLC 0 a 9m", qtd:1,  base:30,  altura:420, comp:10030 },
+        { desc:"Viga MLC 0 a 9m", qtd:1,  base:30,  altura:90,  comp:6300  },
+        { desc:"Viga MLC 0 a 9m", qtd:1,  base:30,  altura:420, comp:6300  },
+        { desc:"Pilar MLC",       qtd:1,  base:160, altura:160, comp:3920  },
+        { desc:"Peça MLC",        qtd:1,  base:100, altura:320, comp:3450  }
+      ]
+    },
+    {
+      id: "antonio-rosana-1365",
+      orcamento: "1365",
+      cliente: "Marcenaria Carvalho — Rosana",
+      local: "Itú - SP",
+      especie: "Eucalipto",
+      data_entrega: "2026-04-21",
+      valor_venda: 15759.85,
+      obs: "Orç. 1365 — MLC Eucalipto. R$/m³ único R$6.840.",
+      itens: [
+        { desc:"Viga MLC 0 a 9m", qtd:2,  base:100, altura:250, comp:3800 },
+        { desc:"Viga MLC 0 a 9m", qtd:2,  base:100, altura:250, comp:6400 },
+        { desc:"Viga MLC 0 a 9m", qtd:8,  base:60,  altura:150, comp:5400 },
+        { desc:"Viga MLC 0 a 9m", qtd:8,  base:40,  altura:250, comp:5400 },
+        { desc:"Viga MLC 0 a 9m", qtd:14, base:40,  altura:150, comp:950  },
+        { desc:"Viga MLC 0 a 9m", qtd:2,  base:50,  altura:400, comp:5200 },
+        { desc:"Viga MLC 0 a 9m", qtd:2,  base:50,  altura:400, comp:7100 },
+        { desc:"Viga MLC 0 a 9m", qtd:1,  base:40,  altura:180, comp:6480 },
+        { desc:"Viga MLC 0 a 9m", qtd:2,  base:40,  altura:180, comp:5440 },
+        { desc:"Viga MLC 0 a 9m", qtd:4,  base:160, altura:160, comp:2700 }
+      ]
+    }
+  ],
+  // Apontamento mensal — estoque físico levantado em 21/04/2026
+  // Bruto: pallets (160+120+85) + largura variável = 26.366 m³
+  // Refilo: ripas 4-8cm + peças boas inteiras + ripa não aproveitável (mantida em estoque) = 8.439 m³
+  // Bag DESCARTE (12.45 m³ serragem) não é input direto — serragem é resíduo calculado no balanço
+  apontamentos_mensais: [
+    {
+      mes_referencia: "2026-04",
+      m3_bruto_remanescente: 26.366,
+      m3_2a_linha: 0,
+      m3_refilo: 8.439,
+      responsavel: "Eduardo",
+      obs: "Inventário físico 21/04/2026. Ripa não aproveitável (3,60 m³) classificada como refilo."
+    }
+  ]
+};
+
+function previewSeed2026() {
+  const totalMad    = SEED_2026.compras_madeira.reduce((s,c)=>s+(c.volume_m3||0),0);
+  const totalValMad = SEED_2026.compras_madeira.reduce((s,c)=>s+(c.valor_total||0),0);
+  const totalVenda  = SEED_2026.pedidos.reduce((s,p)=>s+(p.valor_venda||0),0);
+  const msg = [
+    'Carregar dados iniciais 2026?\n',
+    'MADEIRA (6 compras — LAMINADOS MG):',
+    `  NFs 450, 453, 486, 518, 541 — ${totalMad.toFixed(3)} m³ — ${brl(totalValMad)}`,
+    '',
+    'ADESIVO TLP 40 (2 compras — Kemmsies):',
+    `  NF 71 (out/2025) — 1.100 kg — ${brl(91795)} — ⚠ data estimada, corrigir`,
+    `  NF 155 (mar/2026) — 1.100 kg — ${brl(91795)}`,
+    '',
+    'PEDIDOS (4 orçamentos — Eucalipto MLC):',
+    `  Orç. 1108 Giancarlos Zecca — Ilhabela — ${brl(126042.84)}`,
+    `  Orç. 1205 Eu Sou o Carpinteiro — Paulínia SP — ${brl(25961.94)}`,
+    `  Orç. 1123 Marcenaria Carvalho Mario — Itu SP — ${brl(20950.41)}`,
+    `  Orç. 1365 Marcenaria Carvalho Rosana — Itú SP — ${brl(15759.85)}`,
+    `  Total: ${brl(totalVenda)}`,
+    '',
+    'ESTOQUE INICIAL (01/01/2026):',
+    '  9,5 m³ bruto pool — R$1.500/m³ proxy (confirmar se houver NF de dez/2025)',
+    '',
+    'ESTOQUE (apontamento abril 2026):',
+    '  Bruto remanescente: 26,366 m³ | Refilo: 8,439 m³ (inclui ripa não aproveitável)',
+    '',
+    'Duplicatas serão ignoradas automaticamente.'
+  ].join('\n');
+  if (confirm(msg)) applySeed(SEED_2026);
+}
+
+// ═══════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  // defaults para campos de data
+  document.getElementById('cm-data').value = today();
+  document.getElementById('ca-data').value = today();
+  renderPainel();
+});
+</script>
+</body>
+</html>
