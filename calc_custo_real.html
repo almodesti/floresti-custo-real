@@ -222,7 +222,6 @@ tbody tr:hover { background: #f8f7f5; cursor: pointer; }
           <div class="fg"><label>Valor Total R$ *</label><input type="number" id="cm-valor" step="0.01" min="0" required placeholder="0.00"></div>
           <div class="fg"><label>R$/m³ (calculado)</label><input class="computed" id="cm-rpm3" readonly value="—"></div>
           <div class="fg"><label>Larguras (mm)</label><input type="text" id="cm-larguras" placeholder="Ex: 160, 180, 200"></div>
-          <div class="fg"><label>Data Pagamento</label><input type="date" id="cm-pagamento"></div>
         </div>
         <div class="form-actions">
           <button type="submit" class="btn btn-primary">Salvar</button>
@@ -261,7 +260,6 @@ tbody tr:hover { background: #f8f7f5; cursor: pointer; }
           <div class="fg"><label>Quantidade kg *</label><input type="number" id="ca-kg" step="0.1" min="0.1" required placeholder="0.0"></div>
           <div class="fg"><label>Valor Total R$ *</label><input type="number" id="ca-valor" step="0.01" min="0" required placeholder="0.00"></div>
           <div class="fg"><label>R$/kg (calculado)</label><input class="computed amber" id="ca-rpkg" readonly value="—"></div>
-          <div class="fg"><label>Data Pagamento</label><input type="date" id="ca-pagamento"></div>
         </div>
         <div class="form-actions">
           <button type="submit" class="btn btn-primary">Salvar</button>
@@ -298,8 +296,6 @@ tbody tr:hover { background: #f8f7f5; cursor: pointer; }
           <div class="fg"><label>Data Entrega</label><input type="date" id="p-entrega"></div>
           <div class="fg"><label>Valor Venda R$ *</label><input type="number" id="p-valor" step="0.01" min="0" required placeholder="0.00"></div>
           <div class="fg"><label>m³ Aplainado (calculado)</label><input class="computed" id="p-m3" readonly value="0.000 m³"></div>
-          <div class="fg"><label>Data Sinal Recebido</label><input type="date" id="p-sinal"></div>
-          <div class="fg"><label>Data Pagto. Final</label><input type="date" id="p-final"></div>
         </div>
         <div class="fg" style="margin-top:.6rem"><label>Observações</label><textarea id="p-obs" rows="2" style="resize:vertical"></textarea></div>
 
@@ -462,6 +458,7 @@ tbody tr:hover { background: #f8f7f5; cursor: pointer; }
             <option value="madeira">Compras de Madeira</option>
             <option value="adesivo">Compras de Adesivo</option>
             <option value="pedidos">Pedidos</option>
+            <option value="itens_pedido">Itens de Pedido (Ordem de Produção)</option>
           </select>
         </div>
         <label class="btn btn-primary" style="cursor:pointer; display:inline-block; margin-bottom:0">
@@ -473,7 +470,8 @@ tbody tr:hover { background: #f8f7f5; cursor: pointer; }
         <strong>Nomes de coluna reconhecidos automaticamente:</strong><br>
         Madeira: <span class="badge badge-gray">fornecedor</span> <span class="badge badge-gray">volume_m3</span> <span class="badge badge-gray">valor_total</span> <span class="badge badge-gray">data_recebimento</span> <span class="badge badge-gray">nf</span><br>
         Adesivo: <span class="badge badge-gray">fornecedor</span> <span class="badge badge-gray">kg</span> <span class="badge badge-gray">valor_total</span> <span class="badge badge-gray">produto</span><br>
-        Pedidos: <span class="badge badge-gray">cliente</span> <span class="badge badge-gray">orcamento</span> <span class="badge badge-gray">valor_venda</span> <span class="badge badge-gray">data_entrega</span> <span class="badge badge-gray">local</span>
+        Pedidos: <span class="badge badge-gray">cliente</span> <span class="badge badge-gray">orcamento</span> <span class="badge badge-gray">valor_venda</span> <span class="badge badge-gray">data_entrega</span> <span class="badge badge-gray">local</span><br>
+        Itens de Pedido: <span class="badge badge-gray">orcamento</span> <span class="badge badge-gray">cliente</span> <span class="badge badge-gray">descricao</span> <span class="badge badge-gray">qtd</span> <span class="badge badge-gray">base_mm</span> <span class="badge badge-gray">altura_mm</span> <span class="badge badge-gray">comp_mm</span> <span class="badge badge-gray">comprimento</span>
       </div>
     </div>
   </div>
@@ -563,6 +561,26 @@ function emptyState() {
 let state = emptyState();
 let editId = { madeira:null, adesivo:null, pedido:null, estMensal:null };
 let formItens = [];
+
+const STORAGE_KEY = 'floresti_custo_real';
+function saveState() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) { /* quota or file:// */ }
+}
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const data = JSON.parse(raw);
+      if (data && data.compras_madeira !== undefined) {
+        state = { ...emptyState(), ...data };
+        ['compras_madeira','compras_adesivo','pedidos','apontamentos_mensais']
+          .forEach(k => { if (!Array.isArray(state[k])) state[k] = []; });
+        return true;
+      }
+    }
+  } catch(e) { /* corrupted or unavailable */ }
+  return false;
+}
 
 // ═══════════════════════════════════════════════════════
 // UTILS
@@ -1001,11 +1019,10 @@ function renderMadeira() {
       <td class="mono">${brl(c.valor_total)}</td>
       <td class="mono">${brl(c.volume_m3?c.valor_total/c.volume_m3:null)}</td>
       <td>${c.larguras||'—'}</td>
-      <td>${fmtDate(c.data_pagamento)||'—'}</td>
     </tr>`).join('');
 
   document.getElementById('list-madeira').innerHTML = rows ? `
-    <table><thead><tr><th>Data</th><th>Fornecedor</th><th>NF</th><th>m³</th><th>Total</th><th>R$/m³</th><th>Larguras</th><th>Pago em</th></tr></thead>
+    <table><thead><tr><th>Data</th><th>Fornecedor</th><th>NF</th><th>m³</th><th>Total</th><th>R$/m³</th><th>Larguras</th></tr></thead>
     <tbody>${rows}</tbody></table>`
     : '<div class="tbl-empty">Nenhuma compra cadastrada. Preencha o formulário acima.</div>';
 }
@@ -1026,11 +1043,10 @@ function renderAdesivo() {
       <td class="mono">${kgf(c.kg)}</td>
       <td class="mono">${brl(c.valor_total)}</td>
       <td class="mono">${brl(c.kg?c.valor_total/c.kg:null)}</td>
-      <td>${fmtDate(c.data_pagamento)||'—'}</td>
     </tr>`).join('');
 
   document.getElementById('list-adesivo').innerHTML = rows ? `
-    <table><thead><tr><th>Data</th><th>Fornecedor</th><th>NF</th><th>Produto</th><th>kg</th><th>Total</th><th>R$/kg</th><th>Pago em</th></tr></thead>
+    <table><thead><tr><th>Data</th><th>Fornecedor</th><th>NF</th><th>Produto</th><th>kg</th><th>Total</th><th>R$/kg</th></tr></thead>
     <tbody>${rows}</tbody></table>`
     : '<div class="tbl-empty">Nenhuma compra cadastrada. Preencha o formulário acima.</div>';
 }
@@ -1123,7 +1139,7 @@ function renderMargens() {
   const rows = pedidos.map(p => {
     const c = custoPedido(p.id);
     if (!c) return `<tr onclick="editPedido('${p.id}')"><td>${p.orcamento}</td><td>${p.cliente}</td><td>${fmtDate(p.data_entrega)}</td>
-      <td colspan="5" style="color:var(--muted); font-size:.78rem">Sem data de entrega</td></tr>`;
+      <td colspan="6" style="color:var(--muted); font-size:.78rem">Sem data de entrega</td></tr>`;
     const avs = [];
     if (c.av.semM3Pool) avs.push('sem pool madeira');
     if (c.av.semKgPool) avs.push('sem pool adesivo');
@@ -1146,8 +1162,7 @@ function renderMargens() {
   // Totals row (only for calculated pedidos)
   const totalRow = comCalculo.length ? `
     <tr style="border-top:2px solid var(--border); font-weight:600; background:#f8f7f5">
-      <td colspan="5" style="text-align:right; font-size:.75rem; color:var(--muted)">Total (${comCalculo.length} calculado${comCalculo.length>1?'s':''})</td>
-      <td class="mono">${brl(totalVenda)}</td>
+      <td colspan="6" style="text-align:right; font-size:.75rem; color:var(--muted)">Total (${comCalculo.length} calculado${comCalculo.length>1?'s':''})</td>
       <td class="mono">${brl(totalCusto)}</td>
       <td class="mono ${totalMargem>=0?'pos':'neg'}">${brl(totalMargem)}</td>
       <td><span class="badge ${(margemPctMedia||0)>=0?'badge-green':'badge-red'}">${pctf(margemPctMedia)}</span></td>
@@ -1211,128 +1226,7 @@ function renderBalanco() {
       </div>
       </div></div>`;}).join('');
 
-  document.getElementById('balanco-content').innerHTML = cards + renderReconciliacao();
-}
-
-// ═══════════════════════════════════════════════════════
-// RECONCILIAÇÃO DE CAIXA (SPEC §2.6)
-// ═══════════════════════════════════════════════════════
-function reconciliacaoData() {
-  const meses = allMeses();
-
-  // Compras por mês de recebimento
-  const comprasMes = meses.map(m => {
-    const mad = state.compras_madeira.filter(c => dateToMes(c.data_recebimento) === m);
-    const ade = state.compras_adesivo.filter(c => dateToMes(c.data_recebimento) === m);
-    const todas = [...mad, ...ade];
-    const totalReg  = todas.reduce((s,c) => s + c.valor_total, 0);
-    const totalPago = todas.filter(c => c.data_pagamento).reduce((s,c) => s + c.valor_total, 0);
-    return { mes: m, totalReg, totalPago, pendente: totalReg - totalPago };
-  }).filter(r => r.totalReg > 0);
-
-  // Pedidos — status de recebimento
-  const pedidosStatus = [...state.pedidos]
-    .sort((a,b) => (b.data_entrega||'').localeCompare(a.data_entrega||''))
-    .map(p => ({
-      id: p.id, orcamento: p.orcamento, cliente: p.cliente,
-      data_entrega: p.data_entrega, valor_venda: p.valor_venda||0,
-      data_sinal: p.data_sinal, data_final: p.data_final,
-      status: p.data_final ? 'quitado' : p.data_sinal ? 'sinal' : 'pendente'
-    }));
-
-  const totalVendas   = pedidosStatus.reduce((s,p) => s + p.valor_venda, 0);
-  const totalQuitado  = pedidosStatus.filter(p => p.status==='quitado').reduce((s,p) => s + p.valor_venda, 0);
-  const totalSinal    = pedidosStatus.filter(p => p.status==='sinal').reduce((s,p) => s + p.valor_venda, 0);
-  const totalPendente = pedidosStatus.filter(p => p.status==='pendente').reduce((s,p) => s + p.valor_venda, 0);
-
-  return { comprasMes, pedidosStatus, totalVendas, totalQuitado, totalSinal, totalPendente };
-}
-
-function renderReconciliacao() {
-  const d = reconciliacaoData();
-  if (!d.comprasMes.length && !d.pedidosStatus.length) return '';
-
-  const totalReg  = d.comprasMes.reduce((s,r) => s + r.totalReg, 0);
-  const totalPago = d.comprasMes.reduce((s,r) => s + r.totalPago, 0);
-  const gapCompras = totalReg - totalPago;
-
-  const comprasRows = d.comprasMes.map(r => {
-    const gapCls = r.pendente > 0.01 ? 'neg' : r.pendente < -0.01 ? 'pos' : '';
-    const gapTxt = r.pendente > 0.01 ? '(a pagar)' : r.pendente < -0.01 ? '(adiantado)' : '✓ quitado';
-    return `<tr>
-      <td><strong>${mesLabel(r.mes)}</strong></td>
-      <td class="mono">${brl(r.totalReg)}</td>
-      <td class="mono">${brl(r.totalPago)}</td>
-      <td class="mono ${gapCls}">${r.pendente !== 0 ? brl(Math.abs(r.pendente)) + ' ' : ''}${gapTxt}</td>
-    </tr>`;}).join('');
-
-  const pedRows = d.pedidosStatus.map(r => {
-    const sb = r.status==='quitado' ? '<span class="badge badge-green">Quitado</span>'
-      : r.status==='sinal' ? '<span class="badge badge-amber">Sinal recebido</span>'
-      : '<span class="badge badge-gray">Pendente</span>';
-    return `<tr onclick="editPedido('${r.id}')">
-      <td>${r.orcamento}</td><td>${r.cliente}</td>
-      <td>${fmtDate(r.data_entrega)}</td>
-      <td class="mono">${brl(r.valor_venda)}</td>
-      <td>${r.data_sinal ? fmtDate(r.data_sinal) : '—'}</td>
-      <td>${r.data_final ? fmtDate(r.data_final) : '—'}</td>
-      <td>${sb}</td>
-    </tr>`;}).join('');
-
-  return `
-    <div style="margin-top:1.5rem; border-top:2px dashed var(--border); padding-top:1.5rem">
-    <div style="font-size:.68rem; font-weight:600; text-transform:uppercase; letter-spacing:.12em; color:var(--accent); margin-bottom:1rem">Reconciliação de Caixa — Spec §2.6</div>
-
-    <div class="card" style="margin-bottom:1rem">
-      <div class="card-head"><span class="card-title">Compras — Registrado vs. Pago</span>
-        <span class="badge ${gapCompras>0.01?'badge-red':gapCompras<-0.01?'badge-green':'badge-primary'}" style="font-size:.72rem">
-          ${gapCompras>0.01?brl(gapCompras)+' a pagar':gapCompras<-0.01?'Adiantado':'Tudo quitado'}
-        </span>
-      </div>
-      <div class="card-body" style="padding-top:0">
-      <div class="tbl-wrap">
-      ${comprasRows ? `<table><thead><tr><th>Mês</th><th>Registrado</th><th>Pago</th><th>Saldo</th></tr></thead>
-        <tbody>${comprasRows}</tbody>
-        <tfoot><tr style="border-top:1px solid var(--border);font-weight:600">
-          <td>Total</td>
-          <td class="mono">${brl(totalReg)}</td>
-          <td class="mono">${brl(totalPago)}</td>
-          <td class="mono ${gapCompras>0.01?'neg':'pos'}">${gapCompras>0.01?brl(gapCompras)+' a pagar':'✓'}</td>
-        </tr></tfoot></table>` : '<div class="tbl-empty">Sem compras.</div>'}
-      </div>
-      <p style="font-size:.73rem; color:var(--muted); margin-top:.5rem">Preencha "Data Pagamento" nas compras para atualizar. Confronto com Conta Azul disponível na Fase 2.</p>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-head"><span class="card-title">Pedidos — Faturado vs. Recebido</span></div>
-      <div class="card-body">
-      <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:.7rem; margin-bottom:1rem">
-        <div class="kpi" style="box-shadow:none; border:1px solid var(--border); border-top:3px solid var(--primary)">
-          <div class="kpi-label">Total Faturado</div>
-          <div class="kpi-value" style="font-size:.95rem">${brl(d.totalVendas)}</div>
-        </div>
-        <div class="kpi" style="box-shadow:none; border:1px solid var(--border); border-top:3px solid var(--green-mid)">
-          <div class="kpi-label">Quitados</div>
-          <div class="kpi-value" style="font-size:.95rem; color:var(--green-mid)">${brl(d.totalQuitado)}</div>
-        </div>
-        <div class="kpi" style="box-shadow:none; border:1px solid var(--border); border-top:3px solid var(--accent)">
-          <div class="kpi-label">Sinal recebido</div>
-          <div class="kpi-value" style="font-size:.95rem; color:var(--accent)">${brl(d.totalSinal)}</div>
-        </div>
-        <div class="kpi" style="box-shadow:none; border:1px solid var(--border); border-top:3px solid var(--red)">
-          <div class="kpi-label">Sem recebimento</div>
-          <div class="kpi-value" style="font-size:.95rem; color:var(--red)">${brl(d.totalPendente)}</div>
-        </div>
-      </div>
-      <div class="tbl-wrap">
-      ${pedRows ? `<table><thead><tr><th>Orç.</th><th>Cliente</th><th>Entrega</th><th>Valor</th><th>Sinal em</th><th>Final em</th><th>Status</th></tr></thead><tbody>${pedRows}</tbody></table>`
-        : '<div class="tbl-empty">Sem pedidos.</div>'}
-      </div>
-      <p style="font-size:.73rem; color:var(--muted); margin-top:.5rem">Clique em um pedido para preencher as datas de recebimento (aba Pedidos).</p>
-      </div>
-    </div>
-    </div>`;
+  document.getElementById('balanco-content').innerHTML = cards;
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1427,8 +1321,7 @@ function saveMadeira(e) {
     nf: document.getElementById('cm-nf').value.trim(),
     volume_m3: vol,
     valor_total: val,
-    larguras: document.getElementById('cm-larguras').value.trim(),
-    data_pagamento: document.getElementById('cm-pagamento').value || null
+    larguras: document.getElementById('cm-larguras').value.trim()
   };
   if (editId.madeira) {
     const i = state.compras_madeira.findIndex(c=>c.id===editId.madeira);
@@ -1440,7 +1333,7 @@ function saveMadeira(e) {
   editId.madeira = null;
   document.getElementById('btn-del-madeira').style.display = 'none';
   document.getElementById('title-madeira').textContent = 'Nova Compra';
-  renderMadeira();
+  saveState(); renderMadeira();
   // recalc rpm3
   document.getElementById('cm-rpm3').value = vol ? brl(val/vol)+'/m³' : '—';
 }
@@ -1456,7 +1349,6 @@ function editMadeira(id) {
   document.getElementById('cm-valor').value       = c.valor_total;
   document.getElementById('cm-rpm3').value        = c.volume_m3 ? brl(c.valor_total/c.volume_m3)+'/m³' : '—';
   document.getElementById('cm-larguras').value    = c.larguras||'';
-  document.getElementById('cm-pagamento').value   = c.data_pagamento||'';
   document.getElementById('title-madeira').textContent = 'Editando Compra';
   document.getElementById('btn-del-madeira').style.display = '';
   document.getElementById('hint-madeira').textContent = '';
@@ -1467,7 +1359,7 @@ function deleteMadeira() {
   if (!editId.madeira) return;
   if (!confirm('Excluir esta compra de madeira?')) return;
   state.compras_madeira = state.compras_madeira.filter(c=>c.id!==editId.madeira);
-  cancelEdit('madeira'); renderMadeira();
+  saveState(); cancelEdit('madeira'); renderMadeira();
 }
 
 // live R$/m³
@@ -1492,8 +1384,7 @@ function saveAdesivo(e) {
     fornecedor: document.getElementById('ca-fornecedor').value.trim(),
     nf: document.getElementById('ca-nf').value.trim(),
     produto: document.getElementById('ca-produto').value,
-    kg, valor_total: val,
-    data_pagamento: document.getElementById('ca-pagamento').value || null
+    kg, valor_total: val
   };
   if (editId.adesivo) {
     const i = state.compras_adesivo.findIndex(c=>c.id===editId.adesivo);
@@ -1505,7 +1396,7 @@ function saveAdesivo(e) {
   editId.adesivo = null;
   document.getElementById('btn-del-adesivo').style.display = 'none';
   document.getElementById('title-adesivo').textContent = 'Nova Compra';
-  renderAdesivo();
+  saveState(); renderAdesivo();
 }
 
 function editAdesivo(id) {
@@ -1519,7 +1410,6 @@ function editAdesivo(id) {
   document.getElementById('ca-kg').value         = c.kg;
   document.getElementById('ca-valor').value      = c.valor_total;
   document.getElementById('ca-rpkg').value       = c.kg ? brl(c.valor_total/c.kg)+'/kg' : '—';
-  document.getElementById('ca-pagamento').value  = c.data_pagamento||'';
   document.getElementById('title-adesivo').textContent = 'Editando Compra';
   document.getElementById('btn-del-adesivo').style.display = '';
   document.getElementById('s-adesivo').scrollIntoView({behavior:'smooth', block:'start'});
@@ -1529,7 +1419,7 @@ function deleteAdesivo() {
   if (!editId.adesivo) return;
   if (!confirm('Excluir esta compra de adesivo?')) return;
   state.compras_adesivo = state.compras_adesivo.filter(c=>c.id!==editId.adesivo);
-  cancelEdit('adesivo'); renderAdesivo();
+  saveState(); cancelEdit('adesivo'); renderAdesivo();
 }
 
 document.getElementById('ca-kg').addEventListener('input', updateRpkg);
@@ -1597,8 +1487,6 @@ function savePedido(e) {
     especie: document.getElementById('p-especie').value,
     data_entrega: document.getElementById('p-entrega').value || null,
     valor_venda: parseFloat(document.getElementById('p-valor').value)||0,
-    data_sinal: document.getElementById('p-sinal').value || null,
-    data_final: document.getElementById('p-final').value || null,
     obs: document.getElementById('p-obs').value.trim(),
     itens: formItens.map(it => ({ id:it.id, desc:it.desc, qtd:it.qtd, base_mm:it.base_mm, altura_mm:it.altura_mm, comp_mm:it.comp_mm }))
   };
@@ -1614,7 +1502,7 @@ function savePedido(e) {
   document.getElementById('title-pedido').textContent = 'Novo Pedido';
   formItens = [];
   renderItemsTbl();
-  renderPedidos();
+  saveState(); renderPedidos();
 }
 
 function editPedido(id) {
@@ -1627,8 +1515,6 @@ function editPedido(id) {
   document.getElementById('p-especie').value   = p.especie||'Eucalipto';
   document.getElementById('p-entrega').value   = p.data_entrega||'';
   document.getElementById('p-valor').value     = p.valor_venda;
-  document.getElementById('p-sinal').value     = p.data_sinal||'';
-  document.getElementById('p-final').value     = p.data_final||'';
   document.getElementById('p-obs').value       = p.obs||'';
   formItens = (p.itens||[]).map(it=>({...it}));
   renderItemsTbl();
@@ -1642,7 +1528,7 @@ function deletePedido() {
   if (!editId.pedido) return;
   if (!confirm('Excluir este pedido?')) return;
   state.pedidos = state.pedidos.filter(p=>p.id!==editId.pedido);
-  cancelEdit('pedido'); renderPedidos();
+  saveState(); cancelEdit('pedido'); renderPedidos();
 }
 
 
@@ -1677,7 +1563,7 @@ function saveEstMensal(e) {
   editId.estMensal = null;
   document.getElementById('btn-del-estmensal').style.display = 'none';
   document.getElementById('title-est-mensal').textContent = 'Novo Apontamento';
-  renderEstMensal();
+  saveState(); renderEstMensal();
 }
 
 function editEstMensal(id) {
@@ -1698,7 +1584,7 @@ function deleteEstMensal() {
   if (!editId.estMensal) return;
   if (!confirm('Excluir este apontamento?')) return;
   state.apontamentos_mensais = state.apontamentos_mensais.filter(a=>a.id!==editId.estMensal);
-  cancelEdit('estMensal'); renderEstMensal();
+  saveState(); cancelEdit('estMensal'); renderEstMensal();
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1715,6 +1601,7 @@ function saveEstInicial(e) {
     espessura_lamela_mm: parseFloat(document.getElementById('ei-lamela').value)||30.07,
     r_kg_adesivo:        parseFloat(document.getElementById('ei-rpkg').value)||0
   };
+  saveState();
   document.getElementById('hint-estinic').textContent = '✓ Salvo em ' + new Date().toLocaleTimeString('pt-BR');
 }
 
@@ -1778,7 +1665,7 @@ function applySeed(data) {
       c.nf === raw.nf && c.fornecedor === raw.fornecedor &&
       Math.abs((c.volume_m3||0) - (raw.volume_m3||0)) < 0.001);
     if (dup) return;
-    state.compras_madeira.push({ id: uid(), larguras:'', data_pagamento:'', ...raw });
+    state.compras_madeira.push({ id: uid(), larguras:'', ...raw });
     addedMad++;
   });
 
@@ -1787,7 +1674,7 @@ function applySeed(data) {
       c.nf === raw.nf && c.fornecedor === raw.fornecedor &&
       Math.abs((c.kg||0) - (raw.kg||0)) < 0.1);
     if (dup) return;
-    state.compras_adesivo.push({ id: uid(), data_pagamento:'', ...raw });
+    state.compras_adesivo.push({ id: uid(), ...raw });
     addedAde++;
   });
 
@@ -1811,8 +1698,6 @@ function applySeed(data) {
       especie: raw.especie||'Eucalipto',
       data_entrega: raw.dataEntrega||raw.data_entrega||null,
       valor_venda: raw.valorVenda||raw.valor_venda||0,
-      data_sinal: raw.dataSinal||raw.data_sinal||null,
-      data_final: raw.dataFinal||raw.data_final||null,
       obs: raw.observacoes||raw.obs||'',
       itens
     });
@@ -1836,6 +1721,7 @@ function applySeed(data) {
   if (addedMad)  parts.push(`${addedMad} compra(s) de madeira`);
   if (addedAde)  parts.push(`${addedAde} compra(s) de adesivo`);
   if (addedApt)  parts.push(`${addedApt} apontamento(s) mensal`);
+  saveState();
   alert(parts.length ? `Importado: ${parts.join(', ')}.` : 'Nenhum novo registro — todos já existem.');
   renderTab(currentTab);
 }
@@ -1845,6 +1731,7 @@ function applyFull(data) {
   // garante arrays
   ['compras_madeira','compras_adesivo','pedidos','apontamentos_mensais']
     .forEach(k => { if (!Array.isArray(state[k])) state[k] = []; });
+  saveState();
   renderTab(currentTab);
   alert('Dados importados com sucesso.');
 }
@@ -1853,7 +1740,7 @@ function resetAll() {
   if (!confirm('Zerar TODOS os dados? Esta ação é irreversível.')) return;
   if (!confirm('Confirmar: apagar tudo?')) return;
   state = emptyState();
-  renderTab(currentTab);
+  saveState(); renderTab(currentTab);
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1934,7 +1821,7 @@ function detectTipoNFe(xProd, fornecedor) {
 function buildNFeRecord(tipo, data, forn, nf, qCom, uCom, valor, xProd) {
   const q = parseFloat(qCom) || 0;
   const base = { _tipo: tipo, _produto: xProd, data_recebimento: data, fornecedor: forn, nf, valor_total: valor };
-  if (tipo === 'madeira') return { ...base, volume_m3: q, larguras: '', data_pagamento: '' };
+  if (tipo === 'madeira') return { ...base, volume_m3: q, larguras: '' };
   // Adhesive: IBC (~1100 kg container) and TM (metric ton = ~200 kg drum) have qCom=1
   // Extract actual kg from product description text
   let kg = q;
@@ -1945,7 +1832,7 @@ function buildNFeRecord(tipo, data, forn, nf, qCom, uCom, valor, xProd) {
     else kg = uUp === 'IBC' ? 1100 : 200;
   }
   const prodKey = /tlp[\s._-]?10\b/i.test(xProd) ? 'TLP_10' : 'TLP_40';
-  return { ...base, produto: prodKey, kg, data_pagamento: '' };
+  return { ...base, produto: prodKey, kg };
 }
 
 // ═══════════════════════════════════════════════════════
@@ -2048,9 +1935,8 @@ function processSheetRows(rows, tipo) {
       const vol  = parseNum(colMap(row,['volume_m3','volume','m3','m³','metros cubicos','qty','quantidade','quant','cubagem']));
       const val  = parseNum(colMap(row,['valor_total','valor total','valor','total','preco','preço','price','r$','vl total']));
       const larg = colMap(row,['larguras','largura','width','bitola']);
-      const pag  = normDate(colMap(row,['data_pagamento','pagamento','pago em','pago','vencimento']));
       if (!forn && !val) return;
-      records.push({ _tipo:'madeira', data_recebimento:data||today(), fornecedor:forn||'(importado)', nf, volume_m3:vol, valor_total:val, larguras:larg, data_pagamento:pag });
+      records.push({ _tipo:'madeira', data_recebimento:data||today(), fornecedor:forn||'(importado)', nf, volume_m3:vol, valor_total:val, larguras:larg });
 
     } else if (tipo === 'adesivo') {
       const data = normDate(colMap(row,['data_recebimento','data recebimento','data','date','entrada']));
@@ -2059,9 +1945,8 @@ function processSheetRows(rows, tipo) {
       const kg   = parseNum(colMap(row,['kg','quilos','quilogramas','quantidade','qty','peso','kilos']));
       const val  = parseNum(colMap(row,['valor_total','valor total','valor','total','preco','preço','price','r$']));
       const prod = colMap(row,['produto','product','tipo','item']);
-      const pag  = normDate(colMap(row,['data_pagamento','pagamento','pago em','vencimento']));
       if (!forn && !val) return;
-      records.push({ _tipo:'adesivo', data_recebimento:data||today(), fornecedor:forn||'(importado)', nf, produto:prod||'TLP_40', kg, valor_total:val, data_pagamento:pag });
+      records.push({ _tipo:'adesivo', data_recebimento:data||today(), fornecedor:forn||'(importado)', nf, produto:prod||'TLP_40', kg, valor_total:val });
 
     } else if (tipo === 'pedidos') {
       const orc = colMap(row,['orcamento','orçamento','numero','nro','no','pedido','orcamento numero','orç']);
@@ -2071,8 +1956,37 @@ function processSheetRows(rows, tipo) {
       const val = parseNum(colMap(row,['valor_venda','valor venda','valor nf','valor','total','preco','preço','venda','r$']));
       if (!cli && !val) return;
       records.push({ _tipo:'pedido', orcamento:orc||'—', cliente:cli||'(importado)', local:loc||'', data_entrega:ent||null, valor_venda:val||0, especie:'Eucalipto', obs:'', itens:[] });
+
+    } else if (tipo === 'itens_pedido') {
+      const desc = colMap(row,['descricao','descrição','description','item','peça','peca','nome','tipo_peca','tipo peça']);
+      const qtd  = parseNum(colMap(row,['qtd','quantidade','qty','quant','un','unidades','pcs'])) || 1;
+      const base = parseNum(colMap(row,['base_mm','base','largura_mm','largura','width','larg']));
+      const alt  = parseNum(colMap(row,['altura_mm','altura','height','h','alt','espessura']));
+      const comp = parseNum(colMap(row,['comp_mm','comprimento_mm','comprimento','length','c','comp','compr']));
+      const orc  = colMap(row,['orcamento','orçamento','numero','nro','no','pedido','ordem','op','ordem_producao','ordem producao']);
+      const cli  = colMap(row,['cliente','client','nome_cliente','comprador']);
+      const loc  = colMap(row,['local','local obra','obra','endereco','endereço','cidade','local_obra']);
+      const ent  = normDate(colMap(row,['data_entrega','data entrega','entrega','delivery','previsao','previsão']));
+      const val  = parseNum(colMap(row,['valor_venda','valor venda','valor','total','preco','preço','venda']));
+      if (!base && !alt && !comp && !desc) return;
+      records.push({
+        _tipo:'item_pedido', _group_key: orc||cli||'(sem grupo)',
+        orcamento:orc||'—', cliente:cli||'', local:loc||'', data_entrega:ent||null, valor_venda:val||0,
+        descricao:desc||'(sem descrição)', qtd, base_mm:Math.round(base), altura_mm:Math.round(alt), comp_mm:Math.round(comp)
+      });
     }
   });
+
+  // Auto-detecta: se o usuário escolheu "pedidos" mas a planilha tem colunas dimensionais, re-processa como itens_pedido
+  if (tipo === 'pedidos' && records.length > 0) {
+    const hasItemCols = rows.some(row => {
+      const b = colMap(row,['base_mm','base','largura_mm','largura']);
+      const a = colMap(row,['altura_mm','altura','height']);
+      const c = colMap(row,['comp_mm','comprimento_mm','comprimento']);
+      return b || a || c;
+    });
+    if (hasItemCols) { processSheetRows(rows, 'itens_pedido'); return; }
+  }
 
   if (!records.length) {
     alert('Nenhum registro reconhecido. Verifique se as colunas têm nomes esperados (ex: fornecedor, valor_total, data_recebimento).\n\nO sistema procura pelos nomes em português e inglês, com espaço ou underline.');
@@ -2115,6 +2029,41 @@ function showImportPreview(records, origem) {
     ]);
     if (records.some(r => !r.kg)) warns = '<div class="alert alert-warn" style="margin-bottom:.7rem">⚠ Registros com kg = 0 serão importados — corrija depois na aba Adesivo.</div>';
 
+  } else if (tipo === 'item_pedido') {
+    // Agrupar itens por pedido
+    const groups = {};
+    records.forEach(r => {
+      const key = r._group_key;
+      if (!groups[key]) {
+        groups[key] = { orcamento:r.orcamento, cliente:r.cliente, local:r.local, data_entrega:r.data_entrega, valor_venda:r.valor_venda, itens:[] };
+      }
+      groups[key].itens.push({ descricao:r.descricao, qtd:r.qtd, base_mm:r.base_mm, altura_mm:r.altura_mm, comp_mm:r.comp_mm });
+      if (r.cliente && !groups[key].cliente) groups[key].cliente = r.cliente;
+      if (r.valor_venda && !groups[key].valor_venda) groups[key].valor_venda = r.valor_venda;
+    });
+    const groupArr = Object.values(groups);
+    let html = '';
+    if (groupArr.length > 1) html += `<div class="alert alert-info" style="margin-bottom:.7rem">ℹ Detectados ${groupArr.length} pedidos distintos (agrupados por orçamento/cliente).</div>`;
+    groupArr.forEach((g, gi) => {
+      const totalM3 = g.itens.reduce((s,it) => s + (it.qtd * it.base_mm * it.altura_mm * it.comp_mm) / 1e9, 0);
+      html += `<div style="margin-bottom:1rem;${gi > 0 ? 'border-top:1px solid var(--border);padding-top:.8rem':''}">`;
+      html += `<div style="font-size:.82rem;margin-bottom:.5rem"><strong>Orç. ${g.orcamento}</strong> — ${g.cliente||'(sem cliente)'} — ${g.itens.length} iten(s) — ${m3f(totalM3)} aplainado`;
+      if (g.valor_venda) html += ` — ${brl(g.valor_venda)}`;
+      html += `</div>`;
+      html += '<div class="tbl-wrap"><table><thead><tr><th>Descrição</th><th>Qtd</th><th>Base mm</th><th>Alt mm</th><th>Comp mm</th><th>m³</th></tr></thead><tbody>';
+      g.itens.forEach(it => {
+        const m = (it.qtd * it.base_mm * it.altura_mm * it.comp_mm) / 1e9;
+        html += `<tr><td>${it.descricao}</td><td>${it.qtd}</td><td>${it.base_mm}</td><td>${it.altura_mm}</td><td>${it.comp_mm}</td><td class="mono">${m3f(m)}</td></tr>`;
+      });
+      html += '</tbody></table></div></div>';
+    });
+    pendingImports = groupArr.map(g => ({ _tipo:'item_pedido_grouped', ...g }));
+    document.getElementById('imp-modal-title').textContent = `Pré-visualização — ${records.length} itens em ${groupArr.length} pedido(s)`;
+    document.getElementById('imp-modal-confirm').textContent = `Importar ${groupArr.length} pedido(s) com ${records.length} itens`;
+    document.getElementById('imp-modal-body').innerHTML = html;
+    document.getElementById('imp-modal').style.display = 'flex';
+    return;
+
   } else {
     cols = ['Orç.','Cliente','Local','Entrega','Valor Venda'];
     rows = records.map(r => [r.orcamento, r.cliente, r.local||'—', r.data_entrega ? fmtDate(r.data_entrega) : '—', brl(r.valor_venda)]);
@@ -2137,7 +2086,39 @@ function cancelImport() {
 function confirmImport() {
   if (!pendingImports.length) return;
   const tipo = pendingImports[0]._tipo;
-  let added = 0, skipped = 0;
+  let added = 0, skipped = 0, merged = 0;
+
+  if (tipo === 'item_pedido_grouped') {
+    pendingImports.forEach(g => {
+      const orc = g.orcamento || '—';
+      const cli = g.cliente || '(importado)';
+      const newItens = g.itens.map(it => ({ id:uid(), desc:it.descricao, qtd:it.qtd, base_mm:it.base_mm, altura_mm:it.altura_mm, comp_mm:it.comp_mm }));
+      const existing = state.pedidos.find(p => p.orcamento === orc && p.cliente === cli);
+      if (existing) {
+        existing.itens = [...(existing.itens||[]), ...newItens];
+        if (!existing.data_entrega && g.data_entrega) existing.data_entrega = g.data_entrega;
+        if (!existing.local && g.local) existing.local = g.local;
+        if (!existing.valor_venda && g.valor_venda) existing.valor_venda = g.valor_venda;
+        merged++;
+      } else {
+        state.pedidos.push({
+          id: uid(), orcamento: orc, cliente: cli, local: g.local||'', especie:'Eucalipto',
+          data_entrega: g.data_entrega||null, valor_venda: g.valor_venda||0,
+          obs: 'Importado de planilha de produção',
+          itens: newItens
+        });
+        added++;
+      }
+    });
+    cancelImport();
+    const parts = [];
+    if (added) parts.push(`${added} pedido(s) criado(s)`);
+    if (merged) parts.push(`${merged} pedido(s) atualizado(s) com novos itens`);
+    saveState();
+    alert(parts.join('. ') + '.');
+    renderTab(currentTab);
+    return;
+  }
 
   pendingImports.forEach(r => {
     const { _tipo, _produto, ...rec } = r;
@@ -2154,7 +2135,7 @@ function confirmImport() {
     }
   });
 
-  cancelImport();
+  saveState(); cancelImport();
   const msg = skipped
     ? `${added} importado(s). ${skipped} ignorado(s) por já existir (mesmo orçamento + cliente).`
     : `${added} registro(s) importado(s) com sucesso.`;
@@ -2179,18 +2160,18 @@ const SEED_2026 = {
   },
   compras_madeira: [
     // NF 450 — 2 itens com preços diferentes na mesma NF
-    { nf:"450", data_recebimento:"2026-01-27", fornecedor:"LAMINADOS MG LTDA", volume_m3:6.265, valor_total:9397.50, larguras:"Eucalipto 40mm var.", data_pagamento:"" },
-    { nf:"450", data_recebimento:"2026-01-27", fornecedor:"LAMINADOS MG LTDA", volume_m3:2.898, valor_total:6346.62, larguras:"Eucalipto 40mm var.", data_pagamento:"" },
-    { nf:"453", data_recebimento:"2026-02-09", fornecedor:"LAMINADOS MG LTDA", volume_m3:3.119,  valor_total:4678.50,  larguras:"Eucalipto 40mm var.", data_pagamento:"" },
-    { nf:"486", data_recebimento:"2026-02-25", fornecedor:"LAMINADOS MG LTDA", volume_m3:18.904, valor_total:28356.00, larguras:"Eucalipto 40mm var.", data_pagamento:"" },
-    { nf:"518", data_recebimento:"2026-03-27", fornecedor:"LAMINADOS MG LTDA", volume_m3:25.281, valor_total:37921.50, larguras:"Eucalipto 40mm var.", data_pagamento:"" },
-    { nf:"541", data_recebimento:"2026-04-16", fornecedor:"LAMINADOS MG LTDA", volume_m3:18.877, valor_total:28315.50, larguras:"Eucalipto 40mm var.", data_pagamento:"" }
+    { nf:"450", data_recebimento:"2026-01-27", fornecedor:"LAMINADOS MG LTDA", volume_m3:6.265, valor_total:9397.50, larguras:"Eucalipto 40mm var." },
+    { nf:"450", data_recebimento:"2026-01-27", fornecedor:"LAMINADOS MG LTDA", volume_m3:2.898, valor_total:6346.62, larguras:"Eucalipto 40mm var." },
+    { nf:"453", data_recebimento:"2026-02-09", fornecedor:"LAMINADOS MG LTDA", volume_m3:3.119,  valor_total:4678.50,  larguras:"Eucalipto 40mm var." },
+    { nf:"486", data_recebimento:"2026-02-25", fornecedor:"LAMINADOS MG LTDA", volume_m3:18.904, valor_total:28356.00, larguras:"Eucalipto 40mm var." },
+    { nf:"518", data_recebimento:"2026-03-27", fornecedor:"LAMINADOS MG LTDA", volume_m3:25.281, valor_total:37921.50, larguras:"Eucalipto 40mm var." },
+    { nf:"541", data_recebimento:"2026-04-16", fornecedor:"LAMINADOS MG LTDA", volume_m3:18.877, valor_total:28315.50, larguras:"Eucalipto 40mm var." }
   ],
   compras_adesivo: [
     // NF 71 Kemmsies/Birka out/2025 — TLP 40 (1 IBC = 1.100 kg). Data estimada: corrigir com NF real.
-    { nf:"71",  data_recebimento:"2025-10-15", fornecedor:"Martin Oliver Kemmsies", produto:"TLP_40", kg:1100, valor_total:91795.00, data_pagamento:"" },
+    { nf:"71",  data_recebimento:"2025-10-15", fornecedor:"Martin Oliver Kemmsies", produto:"TLP_40", kg:1100, valor_total:91795.00 },
     // NF 155 Kemmsies/Birka — apenas TLP 40 (1 IBC = 1.100 kg). TLP 10 fora de escopo MVP.
-    { nf:"155", data_recebimento:"2026-03-13", fornecedor:"Martin Oliver Kemmsies", produto:"TLP_40", kg:1100, valor_total:91795.00, data_pagamento:"" }
+    { nf:"155", data_recebimento:"2026-03-13", fornecedor:"Martin Oliver Kemmsies", produto:"TLP_40", kg:1100, valor_total:91795.00 }
   ],
   pedidos: [
     {
@@ -2343,6 +2324,7 @@ function previewSeed2026() {
 // INIT
 // ═══════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => {
+  loadState();
   // defaults para campos de data
   document.getElementById('cm-data').value = today();
   document.getElementById('ca-data').value = today();
