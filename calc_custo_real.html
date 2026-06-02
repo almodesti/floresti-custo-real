@@ -176,11 +176,9 @@ tbody tr:hover { background: #f8f7f5; cursor: pointer; }
 
 <nav class="nav" id="nav">
   <button class="nav-btn active" onclick="showTab('painel')" data-tab="painel">Painel</button>
-  <button class="nav-btn" onclick="showTab('madeira')" data-tab="madeira">Madeira</button>
-  <button class="nav-btn" onclick="showTab('adesivo')" data-tab="adesivo">Adesivo</button>
+  <button class="nav-btn" onclick="showTab('compras')" data-tab="compras">Compras</button>
   <button class="nav-btn" onclick="showTab('pedidos')" data-tab="pedidos">Pedidos</button>
-<button class="nav-btn" onclick="showTab('est-mensal')" data-tab="est-mensal">Est. Mensal</button>
-  <button class="nav-btn" onclick="showTab('est-inicial')" data-tab="est-inicial">Est. Inicial</button>
+  <button class="nav-btn" onclick="showTab('est-mensal')" data-tab="est-mensal">Estoque</button>
   <button class="nav-btn" onclick="showTab('margens')" data-tab="margens">Margens</button>
   <button class="nav-btn" onclick="showTab('balanco')" data-tab="balanco">Balanço</button>
   <button class="nav-btn" onclick="showTab('dados')" data-tab="dados">Dados</button>
@@ -207,84 +205,152 @@ tbody tr:hover { background: #f8f7f5; cursor: pointer; }
   <div id="painel-ultimos"></div>
 </section>
 
-<!-- ════════════════ MADEIRA ════════════════ -->
-<section class="section" id="s-madeira">
-  <div class="sec-title">Compras de Madeira <span class="tag">Eucalipto bruto</span></div>
-  <div class="card">
-    <div class="card-head"><span class="card-title" id="title-madeira">Nova Compra</span></div>
-    <div class="card-body">
-      <form id="form-madeira" onsubmit="saveMadeira(event)">
-        <div class="form-grid">
-          <div class="fg"><label>Data Recebimento *</label><input type="date" id="cm-data" required></div>
-          <div class="fg"><label>Fornecedor *</label><input type="text" id="cm-fornecedor" required placeholder="Ex: Serraria São João"></div>
-          <div class="fg"><label>Nº NF</label><input type="text" id="cm-nf" placeholder="Ex: 00123"></div>
-          <div class="fg"><label>Volume m³ *</label><input type="number" id="cm-volume" step="0.001" min="0.001" required placeholder="0.000"></div>
-          <div class="fg"><label>Valor Total R$ *</label><input type="number" id="cm-valor" step="0.01" min="0" required placeholder="0.00"></div>
-          <div class="fg"><label>R$/m³ (calculado)</label><input class="computed" id="cm-rpm3" readonly value="—"></div>
-          <div class="fg"><label>Larguras (mm)</label><input type="text" id="cm-larguras" placeholder="Ex: 160, 180, 200"></div>
-        </div>
-        <div class="form-actions">
-          <button type="submit" class="btn btn-primary">Salvar</button>
-          <button type="button" class="btn btn-secondary" onclick="cancelEdit('madeira')">Novo</button>
-          <button type="button" class="btn btn-danger" id="btn-del-madeira" style="display:none" onclick="deleteMadeira()">Excluir</button>
-          <span class="form-hint" id="hint-madeira"></span>
-        </div>
-      </form>
-    </div>
-  </div>
-  <div class="card">
-    <div class="card-head">
-      <span class="card-title">Histórico</span>
-      <span id="badge-preco-madeira" class="badge badge-green" style="font-size:.75rem"></span>
-    </div>
-    <div class="card-body" style="padding-top:0">
-      <div class="tbl-wrap"><div id="list-madeira"></div></div>
-    </div>
-  </div>
-</section>
+<!-- ════════════════ COMPRAS (unificada) ════════════════ -->
+<section class="section" id="s-compras">
+  <div class="sec-title">Compras <span class="tag">Madeira + Adesivo</span></div>
 
-<!-- ════════════════ ADESIVO ════════════════ -->
-<section class="section" id="s-adesivo">
-  <div class="sec-title">Compras de Adesivo <span class="tag">TLP 40 — Birka</span></div>
-  <div class="card amber">
-    <div class="card-head"><span class="card-title" id="title-adesivo">Nova Compra</span></div>
+  <!-- IMPORT RÁPIDO — caminho principal -->
+  <div class="card" style="border-top-color:var(--green-mid)">
+    <div class="card-head">
+      <span class="card-title">Importar NF-e <span class="badge badge-green" style="font-size:.68rem;vertical-align:middle">Recomendado</span></span>
+      <span style="font-size:.72rem; color:var(--muted)">Detecta madeira ou adesivo automaticamente</span>
+    </div>
     <div class="card-body">
-      <form id="form-adesivo" onsubmit="saveAdesivo(event)">
-        <div class="form-grid">
-          <div class="fg"><label>Data Recebimento *</label><input type="date" id="ca-data" required></div>
-          <div class="fg"><label>Fornecedor *</label><input type="text" id="ca-fornecedor" required placeholder="Ex: Birka"></div>
-          <div class="fg"><label>Nº NF</label><input type="text" id="ca-nf" placeholder="Ex: 71"></div>
-          <div class="fg"><label>Produto</label>
-            <select id="ca-produto"><option value="TLP_40">TLP 40</option><option value="TLP_10">TLP 10</option></select>
-          </div>
-          <div class="fg"><label>Quantidade kg *</label><input type="number" id="ca-kg" step="0.1" min="0.1" required placeholder="0.0"></div>
-          <div class="fg"><label>Valor Total R$ *</label><input type="number" id="ca-valor" step="0.01" min="0" required placeholder="0.00"></div>
-          <div class="fg"><label>R$/kg (calculado)</label><input class="computed amber" id="ca-rpkg" readonly value="—"></div>
-        </div>
-        <div class="form-actions">
-          <button type="submit" class="btn btn-primary">Salvar</button>
-          <button type="button" class="btn btn-secondary" onclick="cancelEdit('adesivo')">Novo</button>
-          <button type="button" class="btn btn-danger" id="btn-del-adesivo" style="display:none" onclick="deleteAdesivo()">Excluir</button>
-          <span class="form-hint" id="hint-adesivo"></span>
-        </div>
-      </form>
+      <div style="display:flex; gap:.8rem; align-items:center; flex-wrap:wrap">
+        <label class="btn btn-primary" style="cursor:pointer; display:inline-block">
+          📄 Importar XML da NF-e
+          <input type="file" accept=".xml" multiple style="display:none" onchange="importNFe(this)">
+        </label>
+        <label class="btn btn-secondary" style="cursor:pointer; display:inline-block">
+          📊 Importar Planilha
+          <input type="file" accept=".csv,.xlsx,.xls,.ods" style="display:none" onchange="importComprasPlanilha(this)">
+        </label>
+        <span style="font-size:.75rem; color:var(--muted)">Aceita múltiplos arquivos · Duplicatas ignoradas</span>
+      </div>
     </div>
   </div>
-  <div class="card amber">
+
+  <!-- INDICADORES -->
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:.8rem; margin-bottom:1rem">
+    <div class="card" style="margin-bottom:0">
+      <div class="card-head">
+        <span class="card-title" style="font-size:.85rem">Pool Madeira</span>
+        <span id="badge-preco-madeira" class="badge badge-green" style="font-size:.72rem"></span>
+      </div>
+      <div class="card-body" style="padding:.5rem 1rem">
+        <div id="compras-kpi-madeira" style="font-size:.82rem; color:var(--muted)"></div>
+      </div>
+    </div>
+    <div class="card amber" style="margin-bottom:0">
+      <div class="card-head">
+        <span class="card-title" style="font-size:.85rem">Pool Adesivo TLP 40</span>
+        <span id="badge-preco-adesivo" class="badge badge-amber" style="font-size:.72rem"></span>
+      </div>
+      <div class="card-body" style="padding:.5rem 1rem">
+        <div id="compras-kpi-adesivo" style="font-size:.82rem; color:var(--muted)"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HISTÓRICO UNIFICADO -->
+  <div class="card">
     <div class="card-head">
-      <span class="card-title">Histórico</span>
-      <span id="badge-preco-adesivo" class="badge badge-amber" style="font-size:.75rem"></span>
+      <span class="card-title">Histórico de Compras</span>
+      <div style="display:flex; gap:.4rem">
+        <button class="btn btn-xs btn-secondary" onclick="filtroCompras='todas';renderCompras()" id="fc-todas" style="font-weight:700">Todas</button>
+        <button class="btn btn-xs btn-secondary" onclick="filtroCompras='madeira';renderCompras()" id="fc-madeira">Madeira</button>
+        <button class="btn btn-xs btn-secondary" onclick="filtroCompras='adesivo';renderCompras()" id="fc-adesivo">Adesivo</button>
+      </div>
     </div>
     <div class="card-body" style="padding-top:0">
-      <div class="tbl-wrap"><div id="list-adesivo"></div></div>
+      <div class="tbl-wrap"><div id="list-compras"></div></div>
     </div>
   </div>
+
+  <!-- FORM MANUAL — fallback colapsável -->
+  <details style="margin-top:.5rem">
+    <summary style="cursor:pointer; font-size:.82rem; font-weight:600; color:var(--primary); padding:.5rem 0">+ Lançamento manual (sem NF-e)</summary>
+
+    <div class="card" style="margin-top:.5rem">
+      <div class="card-head"><span class="card-title" id="title-madeira">Madeira — Manual</span></div>
+      <div class="card-body">
+        <form id="form-madeira" onsubmit="saveMadeira(event)">
+          <div class="form-grid">
+            <div class="fg"><label>Data Recebimento *</label><input type="date" id="cm-data" required></div>
+            <div class="fg"><label>Fornecedor *</label><input type="text" id="cm-fornecedor" required placeholder="Ex: Serraria São João"></div>
+            <div class="fg"><label>Nº NF</label><input type="text" id="cm-nf" placeholder="Ex: 00123"></div>
+            <div class="fg"><label>Volume m³ *</label><input type="number" id="cm-volume" step="0.001" min="0.001" required placeholder="0.000"></div>
+            <div class="fg"><label>Valor Total R$ *</label><input type="number" id="cm-valor" step="0.01" min="0" required placeholder="0.00"></div>
+            <div class="fg"><label>R$/m³ (calculado)</label><input class="computed" id="cm-rpm3" readonly value="—"></div>
+            <div class="fg"><label>Larguras (mm)</label><input type="text" id="cm-larguras" placeholder="Ex: 160, 180, 200"></div>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Salvar</button>
+            <button type="button" class="btn btn-secondary" onclick="cancelEdit('madeira')">Novo</button>
+            <button type="button" class="btn btn-danger" id="btn-del-madeira" style="display:none" onclick="deleteMadeira()">Excluir</button>
+            <span class="form-hint" id="hint-madeira"></span>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="card amber" style="margin-top:.5rem">
+      <div class="card-head"><span class="card-title" id="title-adesivo">Adesivo — Manual</span></div>
+      <div class="card-body">
+        <form id="form-adesivo" onsubmit="saveAdesivo(event)">
+          <div class="form-grid">
+            <div class="fg"><label>Data Recebimento *</label><input type="date" id="ca-data" required></div>
+            <div class="fg"><label>Fornecedor *</label><input type="text" id="ca-fornecedor" required placeholder="Ex: Birka"></div>
+            <div class="fg"><label>Nº NF</label><input type="text" id="ca-nf" placeholder="Ex: 71"></div>
+            <div class="fg"><label>Produto</label>
+              <select id="ca-produto"><option value="TLP_40">TLP 40</option><option value="TLP_10">TLP 10</option></select>
+            </div>
+            <div class="fg"><label>Quantidade kg *</label><input type="number" id="ca-kg" step="0.1" min="0.1" required placeholder="0.0"></div>
+            <div class="fg"><label>Valor Total R$ *</label><input type="number" id="ca-valor" step="0.01" min="0" required placeholder="0.00"></div>
+            <div class="fg"><label>R$/kg (calculado)</label><input class="computed amber" id="ca-rpkg" readonly value="—"></div>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Salvar</button>
+            <button type="button" class="btn btn-secondary" onclick="cancelEdit('adesivo')">Novo</button>
+            <button type="button" class="btn btn-danger" id="btn-del-adesivo" style="display:none" onclick="deleteAdesivo()">Excluir</button>
+            <span class="form-hint" id="hint-adesivo"></span>
+          </div>
+        </form>
+      </div>
+    </div>
+  </details>
 </section>
 
 <!-- ════════════════ PEDIDOS ════════════════ -->
 <section class="section" id="s-pedidos">
   <div class="sec-title">Pedidos <span class="tag">MLC Eucalipto</span></div>
+
+  <!-- IMPORT RÁPIDO — caminho principal -->
+  <div class="card" style="border-top-color:var(--green-mid)">
+    <div class="card-head">
+      <span class="card-title">Importar Pedidos <span class="badge badge-green" style="font-size:.68rem;vertical-align:middle">Recomendado</span></span>
+    </div>
+    <div class="card-body">
+      <div style="display:flex; gap:.8rem; align-items:center; flex-wrap:wrap">
+        <label class="btn btn-primary" style="cursor:pointer; display:inline-block">
+          📊 Importar Planilha de Orçamento
+          <input type="file" accept=".csv,.xlsx,.xls,.ods" style="display:none" onchange="importPedidosPlanilha(this)">
+        </label>
+        <span style="font-size:.75rem; color:var(--muted)">Detecta itens com dimensões e agrupa por orçamento</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- LISTA DE PEDIDOS -->
   <div class="card">
+    <div class="card-head"><span class="card-title">Pedidos Cadastrados</span></div>
+    <div class="card-body" style="padding-top:0"><div class="tbl-wrap"><div id="list-pedidos"></div></div></div>
+  </div>
+
+  <!-- FORM MANUAL — fallback colapsável -->
+  <details id="pedido-form-details">
+    <summary style="cursor:pointer; font-size:.82rem; font-weight:600; color:var(--primary); padding:.5rem 0">+ Lançamento manual de pedido</summary>
+  <div class="card" style="margin-top:.5rem">
     <div class="card-head"><span class="card-title" id="title-pedido">Novo Pedido</span></div>
     <div class="card-body">
       <form id="form-pedido" onsubmit="savePedido(event)">
@@ -327,10 +393,7 @@ tbody tr:hover { background: #f8f7f5; cursor: pointer; }
       </form>
     </div>
   </div>
-  <div class="card">
-    <div class="card-head"><span class="card-title">Pedidos Cadastrados</span></div>
-    <div class="card-body" style="padding-top:0"><div class="tbl-wrap"><div id="list-pedidos"></div></div></div>
-  </div>
+  </details>
 </section>
 
 
@@ -360,34 +423,6 @@ tbody tr:hover { background: #f8f7f5; cursor: pointer; }
   <div class="card">
     <div class="card-head"><span class="card-title">Apontamentos</span></div>
     <div class="card-body" style="padding-top:0"><div class="tbl-wrap"><div id="list-estmensal"></div></div></div>
-  </div>
-</section>
-
-<!-- ════════════════ ESTOQUE INICIAL ════════════════ -->
-<section class="section" id="s-est-inicial">
-  <div class="sec-title">Estoque Inicial <span class="tag">01/01/2026</span></div>
-  <div class="card">
-    <div class="card-head">
-      <span class="card-title">Estado em 01/01/2026</span>
-      <span style="font-size:.72rem; color:var(--muted)">Valores usados como ponto de partida de todos os cálculos</span>
-    </div>
-    <div class="card-body">
-      <form id="form-est-inicial" onsubmit="saveEstInicial(event)">
-        <div class="form-grid">
-          <div class="fg"><label>m³ Bruto no Pool</label><input type="number" id="ei-bruto" step="0.001" min="0" value="0"></div>
-          <div class="fg"><label>R$/m³ do Bruto Inicial</label><input type="number" id="ei-rpm3" step="0.01" min="0" value="0"></div>
-          <div class="fg"><label>m³ 2ª Linha</label><input type="number" id="ei-2a" step="0.001" min="0" value="0"></div>
-          <div class="fg"><label>m³ Refilo</label><input type="number" id="ei-refilo" step="0.001" min="0" value="0"></div>
-          <div class="fg"><label>Gramatura cola (kg/m²/linha)</label><input type="number" id="ei-taxa" step="0.001" min="0" value="0.25"></div>
-          <div class="fg"><label>Espessura lamela (mm)</label><input type="number" id="ei-lamela" step="0.01" min="1" value="30.07"></div>
-          <div class="fg"><label>R$/kg Adesivo Inicial</label><input type="number" id="ei-rpkg" step="0.01" min="0" value="0"></div>
-        </div>
-        <div class="form-actions">
-          <button type="submit" class="btn btn-primary">Salvar Estoque Inicial</button>
-          <span class="form-hint" id="hint-estinic"></span>
-        </div>
-      </form>
-    </div>
   </div>
 </section>
 
@@ -505,6 +540,31 @@ tbody tr:hover { background: #f8f7f5; cursor: pointer; }
           <input type="file" accept=".json" style="display:none" onchange="importJSON(this)">
         </label>
       </div>
+    </div>
+  </div>
+
+  <!-- Estoque Inicial (config) -->
+  <div class="card" style="border-top-color:var(--accent)">
+    <div class="card-head">
+      <span class="card-title">Estoque Inicial — 01/01/2026</span>
+      <span style="font-size:.72rem; color:var(--muted)">Ponto de partida dos cálculos</span>
+    </div>
+    <div class="card-body">
+      <form id="form-est-inicial" onsubmit="saveEstInicial(event)">
+        <div class="form-grid">
+          <div class="fg"><label>m³ Bruto no Pool</label><input type="number" id="ei-bruto" step="0.001" min="0" value="0"></div>
+          <div class="fg"><label>R$/m³ do Bruto Inicial</label><input type="number" id="ei-rpm3" step="0.01" min="0" value="0"></div>
+          <div class="fg"><label>m³ 2ª Linha</label><input type="number" id="ei-2a" step="0.001" min="0" value="0"></div>
+          <div class="fg"><label>m³ Refilo</label><input type="number" id="ei-refilo" step="0.001" min="0" value="0"></div>
+          <div class="fg"><label>Gramatura cola (kg/m²/linha)</label><input type="number" id="ei-taxa" step="0.001" min="0" value="0.25"></div>
+          <div class="fg"><label>Espessura lamela (mm)</label><input type="number" id="ei-lamela" step="0.01" min="1" value="30.07"></div>
+          <div class="fg"><label>R$/kg Adesivo Inicial</label><input type="number" id="ei-rpkg" step="0.01" min="0" value="0"></div>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">Salvar Estoque Inicial</button>
+          <span class="form-hint" id="hint-estinic"></span>
+        </div>
+      </form>
     </div>
   </div>
 
@@ -757,17 +817,17 @@ function showTab(tab) {
   renderTab(tab);
 }
 
+let filtroCompras = 'todas';
+
 function renderTab(tab) {
   switch(tab) {
     case 'painel':     renderPainel();    break;
-    case 'madeira':    renderMadeira();   break;
-    case 'adesivo':    renderAdesivo();   break;
+    case 'compras':    renderCompras();   break;
     case 'pedidos':    renderPedidos();   break;
     case 'est-mensal': renderEstMensal(); break;
-    case 'est-inicial':renderEstInicial();break;
     case 'margens':    renderMargens();   break;
     case 'balanco':    renderBalanco();   break;
-    case 'dados':      renderDados();     break;
+    case 'dados':      renderDados(); renderEstInicial(); break;
   }
 }
 
@@ -1008,47 +1068,86 @@ function renderPainel() {
 // ═══════════════════════════════════════════════════════
 function renderMadeira() {
   const preco = precoM3Pool(today());
-  document.getElementById('badge-preco-madeira').textContent = preco ? `Preço médio atual: ${brl(preco)}/m³` : 'Sem compras';
+  document.getElementById('badge-preco-madeira').textContent = preco ? `${brl(preco)}/m³` : 'Sem compras';
+}
 
-  const rows = state.compras_madeira.sort((a,b)=>b.data_recebimento.localeCompare(a.data_recebimento)).map(c => `
-    <tr onclick="editMadeira('${c.id}')">
-      <td>${fmtDate(c.data_recebimento)}</td>
-      <td>${c.fornecedor}</td>
-      <td>${c.nf||'—'}</td>
-      <td class="mono">${m3f(c.volume_m3)}</td>
-      <td class="mono">${brl(c.valor_total)}</td>
-      <td class="mono">${brl(c.volume_m3?c.valor_total/c.volume_m3:null)}</td>
-      <td>${c.larguras||'—'}</td>
-    </tr>`).join('');
-
-  document.getElementById('list-madeira').innerHTML = rows ? `
-    <table><thead><tr><th>Data</th><th>Fornecedor</th><th>NF</th><th>m³</th><th>Total</th><th>R$/m³</th><th>Larguras</th></tr></thead>
-    <tbody>${rows}</tbody></table>`
-    : '<div class="tbl-empty">Nenhuma compra cadastrada. Preencha o formulário acima.</div>';
+function renderAdesivo() {
+  const preco = precoKgPool(today());
+  document.getElementById('badge-preco-adesivo').textContent = preco ? `${brl(preco)}/kg` : 'Sem compras';
 }
 
 // ═══════════════════════════════════════════════════════
-// RENDER — ADESIVO
+// RENDER — COMPRAS (unificada)
 // ═══════════════════════════════════════════════════════
-function renderAdesivo() {
-  const preco = precoKgPool(today());
-  document.getElementById('badge-preco-adesivo').textContent = preco ? `Preço médio atual: ${brl(preco)}/kg` : 'Sem compras';
+function renderCompras() {
+  renderMadeira(); renderAdesivo();
 
-  const rows = state.compras_adesivo.sort((a,b)=>b.data_recebimento.localeCompare(a.data_recebimento)).map(c => `
-    <tr onclick="editAdesivo('${c.id}')">
-      <td>${fmtDate(c.data_recebimento)}</td>
+  // KPIs dos pools
+  const pM3 = precoM3Pool(today());
+  const pKg = precoKgPool(today());
+  const totM3 = state.compras_madeira.reduce((s,c)=>s+c.volume_m3,0);
+  const totRsM = state.compras_madeira.reduce((s,c)=>s+c.valor_total,0);
+  const totKg = state.compras_adesivo.filter(c=>c.produto==='TLP_40').reduce((s,c)=>s+c.kg,0);
+  const totRsA = state.compras_adesivo.filter(c=>c.produto==='TLP_40').reduce((s,c)=>s+c.valor_total,0);
+  document.getElementById('compras-kpi-madeira').innerHTML = totM3>0
+    ? `${state.compras_madeira.length} compra(s) · ${m3f(totM3)} · ${brl(totRsM)}`
+    : 'Nenhuma compra';
+  document.getElementById('compras-kpi-adesivo').innerHTML = totKg>0
+    ? `${state.compras_adesivo.length} compra(s) · ${kgf(totKg)} · ${brl(totRsA)}`
+    : 'Nenhuma compra';
+
+  // Filtro buttons
+  ['todas','madeira','adesivo'].forEach(f => {
+    const btn = document.getElementById('fc-'+f);
+    if (btn) btn.style.fontWeight = filtroCompras===f ? '700' : '400';
+  });
+
+  // Tabela unificada
+  const all = [
+    ...state.compras_madeira.map(c => ({...c, _tipo:'madeira', _data:c.data_recebimento, _valor:c.valor_total})),
+    ...state.compras_adesivo.map(c => ({...c, _tipo:'adesivo', _data:c.data_recebimento, _valor:c.valor_total}))
+  ].filter(c => filtroCompras==='todas' || c._tipo===filtroCompras)
+   .sort((a,b) => b._data.localeCompare(a._data));
+
+  const rows = all.map(c => {
+    const isMad = c._tipo==='madeira';
+    const tipoBadge = isMad
+      ? '<span class="badge badge-green" style="font-size:.7rem">Madeira</span>'
+      : '<span class="badge badge-amber" style="font-size:.7rem">Adesivo</span>';
+    const qty = isMad ? m3f(c.volume_m3) : kgf(c.kg);
+    const unit = isMad ? (c.volume_m3 ? brl(c.valor_total/c.volume_m3)+'/m³' : '—') : (c.kg ? brl(c.valor_total/c.kg)+'/kg' : '—');
+    const onclick = isMad ? `editMadeira('${c.id}')` : `editAdesivo('${c.id}')`;
+    return `<tr onclick="${onclick}">
+      <td>${fmtDate(c._data)}</td>
+      <td>${tipoBadge}</td>
       <td>${c.fornecedor}</td>
       <td>${c.nf||'—'}</td>
-      <td><span class="badge badge-amber">${c.produto}</span></td>
-      <td class="mono">${kgf(c.kg)}</td>
-      <td class="mono">${brl(c.valor_total)}</td>
-      <td class="mono">${brl(c.kg?c.valor_total/c.kg:null)}</td>
-    </tr>`).join('');
+      <td class="mono">${qty}</td>
+      <td class="mono">${brl(c._valor)}</td>
+      <td class="mono">${unit}</td>
+    </tr>`;
+  }).join('');
 
-  document.getElementById('list-adesivo').innerHTML = rows ? `
-    <table><thead><tr><th>Data</th><th>Fornecedor</th><th>NF</th><th>Produto</th><th>kg</th><th>Total</th><th>R$/kg</th></tr></thead>
+  document.getElementById('list-compras').innerHTML = rows ? `
+    <table><thead><tr><th>Data</th><th>Tipo</th><th>Fornecedor</th><th>NF</th><th>Qtd</th><th>Total</th><th>Preço unit.</th></tr></thead>
     <tbody>${rows}</tbody></table>`
-    : '<div class="tbl-empty">Nenhuma compra cadastrada. Preencha o formulário acima.</div>';
+    : '<div class="tbl-empty">Nenhuma compra cadastrada. Importe XML ou preencha manualmente.</div>';
+}
+
+// Import helpers direto nas abas
+function importComprasPlanilha(input) {
+  const file = input.files[0]; if (!file) return;
+  // Auto-detect: tenta madeira primeiro, se não achar colunas de kg tenta adesivo
+  document.getElementById('imp-sheet-tipo').value = 'madeira';
+  importPlanilha(input);
+}
+function importPedidosPlanilha(input) {
+  const file = input.files[0]; if (!file) return;
+  document.getElementById('imp-sheet-tipo').value = 'itens_pedido';
+  const dt = new DataTransfer(); dt.items.add(file);
+  const proxy = document.createElement('input'); proxy.type='file'; proxy.files = dt.files;
+  importPlanilha(proxy);
+  input.value = '';
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1333,7 +1432,7 @@ function saveMadeira(e) {
   editId.madeira = null;
   document.getElementById('btn-del-madeira').style.display = 'none';
   document.getElementById('title-madeira').textContent = 'Nova Compra';
-  saveState(); renderMadeira();
+  saveState(); renderCompras();
   // recalc rpm3
   document.getElementById('cm-rpm3').value = vol ? brl(val/vol)+'/m³' : '—';
 }
@@ -1352,14 +1451,16 @@ function editMadeira(id) {
   document.getElementById('title-madeira').textContent = 'Editando Compra';
   document.getElementById('btn-del-madeira').style.display = '';
   document.getElementById('hint-madeira').textContent = '';
-  document.getElementById('s-madeira').scrollIntoView({behavior:'smooth', block:'start'});
+  const det = document.querySelector('#s-compras details');
+  if (det) det.open = true;
+  document.getElementById('form-madeira').scrollIntoView({behavior:'smooth', block:'start'});
 }
 
 function deleteMadeira() {
   if (!editId.madeira) return;
   if (!confirm('Excluir esta compra de madeira?')) return;
   state.compras_madeira = state.compras_madeira.filter(c=>c.id!==editId.madeira);
-  saveState(); cancelEdit('madeira'); renderMadeira();
+  saveState(); cancelEdit('madeira'); renderCompras();
 }
 
 // live R$/m³
@@ -1396,7 +1497,7 @@ function saveAdesivo(e) {
   editId.adesivo = null;
   document.getElementById('btn-del-adesivo').style.display = 'none';
   document.getElementById('title-adesivo').textContent = 'Nova Compra';
-  saveState(); renderAdesivo();
+  saveState(); renderCompras();
 }
 
 function editAdesivo(id) {
@@ -1412,14 +1513,16 @@ function editAdesivo(id) {
   document.getElementById('ca-rpkg').value       = c.kg ? brl(c.valor_total/c.kg)+'/kg' : '—';
   document.getElementById('title-adesivo').textContent = 'Editando Compra';
   document.getElementById('btn-del-adesivo').style.display = '';
-  document.getElementById('s-adesivo').scrollIntoView({behavior:'smooth', block:'start'});
+  const det = document.querySelector('#s-compras details');
+  if (det) det.open = true;
+  document.getElementById('form-adesivo').scrollIntoView({behavior:'smooth', block:'start'});
 }
 
 function deleteAdesivo() {
   if (!editId.adesivo) return;
   if (!confirm('Excluir esta compra de adesivo?')) return;
   state.compras_adesivo = state.compras_adesivo.filter(c=>c.id!==editId.adesivo);
-  saveState(); cancelEdit('adesivo'); renderAdesivo();
+  saveState(); cancelEdit('adesivo'); renderCompras();
 }
 
 document.getElementById('ca-kg').addEventListener('input', updateRpkg);
@@ -1521,6 +1624,8 @@ function editPedido(id) {
   document.getElementById('title-pedido').textContent = 'Editando Pedido';
   document.getElementById('btn-del-pedido').style.display = '';
   document.getElementById('hint-pedido').textContent = '';
+  const det = document.getElementById('pedido-form-details');
+  if (det) det.open = true;
   document.getElementById('s-pedidos').scrollIntoView({behavior:'smooth', block:'start'});
 }
 
