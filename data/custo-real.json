@@ -1,0 +1,16 @@
+{
+  "version": "2.1.0",
+  "estoque_inicial": {
+    "m3_bruto_pool": 0,
+    "m3_2a_linha": 0,
+    "m3_refilo": 0,
+    "taxa_kg_m3_padrao": 0.25,
+    "espessura_lamela_mm": 30.07,
+    "r_m3_bruto": 0,
+    "r_kg_adesivo": 0
+  },
+  "compras": [],
+  "pedidos": [],
+  "apontamentos_mensais": [],
+  "leituras_tambor": []
+}

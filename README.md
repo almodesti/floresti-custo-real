@@ -25,10 +25,20 @@ Calculadora de custo real da fábrica MLC Eucalipto. Sistema single-file HTML �
 
 ## Como salvar os dados
 
-O sistema não usa banco de dados — ao fechar o browser os dados somem. Para salvar:
+O sistema salva localmente no navegador e também pode sincronizar um JSON no GitHub.
 
 - **Exportar**: botão no canto superior direito → salva um arquivo `.json`
 - **Importar**: mesmo botão → restaura os dados do `.json` salvo
+- **GitHub**: aba **Dados** → **Salvar dados no GitHub**
+  - arquivo padrão: `data/custo-real.json`
+  - requer um token do GitHub com permissão `Contents: Read and write`
+
+## Deploy
+
+O deploy é feito por GitHub Pages via GitHub Actions (`.github/workflows/pages.yml`).
+Após o push na branch `main`, a página deve ficar disponível em:
+
+https://almodesti.github.io/floresti-custo-real/
 
 ## Stack
 

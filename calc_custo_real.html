@@ -207,7 +207,7 @@ tbody tr:hover { background: #f8f7f5; cursor: pointer; }
 
 <!-- ════════════════ COMPRAS (unificada) ════════════════ -->
 <section class="section" id="s-compras">
-  <div class="sec-title">Compras <span class="tag">Madeira + Adesivo</span></div>
+  <div class="sec-title">Compras <span class="tag">Todos os insumos</span></div>
 
   <!-- IMPORT RÁPIDO — caminho principal -->
   <div class="card" style="border-top-color:var(--green-mid)">
@@ -256,10 +256,15 @@ tbody tr:hover { background: #f8f7f5; cursor: pointer; }
   <div class="card">
     <div class="card-head">
       <span class="card-title">Histórico de Compras</span>
-      <div style="display:flex; gap:.4rem">
+      <div style="display:flex; gap:.4rem; flex-wrap:wrap">
         <button class="btn btn-xs btn-secondary" onclick="filtroCompras='todas';renderCompras()" id="fc-todas" style="font-weight:700">Todas</button>
         <button class="btn btn-xs btn-secondary" onclick="filtroCompras='madeira';renderCompras()" id="fc-madeira">Madeira</button>
-        <button class="btn btn-xs btn-secondary" onclick="filtroCompras='adesivo';renderCompras()" id="fc-adesivo">Adesivo</button>
+        <button class="btn btn-xs btn-secondary" onclick="filtroCompras='cola';renderCompras()" id="fc-cola">Cola</button>
+        <button class="btn btn-xs btn-secondary" onclick="filtroCompras='energia';renderCompras()" id="fc-energia">Energia</button>
+        <button class="btn btn-xs btn-secondary" onclick="filtroCompras='frete';renderCompras()" id="fc-frete">Frete</button>
+        <button class="btn btn-xs btn-secondary" onclick="filtroCompras='tratamento';renderCompras()" id="fc-tratamento">Tratamento</button>
+        <button class="btn btn-xs btn-secondary" onclick="filtroCompras='secagem';renderCompras()" id="fc-secagem">Secagem</button>
+        <button class="btn btn-xs btn-secondary" onclick="filtroCompras='outros';renderCompras()" id="fc-outros">Outros</button>
       </div>
     </div>
     <div class="card-body" style="padding-top:0">
@@ -268,52 +273,41 @@ tbody tr:hover { background: #f8f7f5; cursor: pointer; }
   </div>
 
   <!-- FORM MANUAL — fallback colapsável -->
-  <details style="margin-top:.5rem">
+  <details style="margin-top:.5rem" id="compra-form-details">
     <summary style="cursor:pointer; font-size:.82rem; font-weight:600; color:var(--primary); padding:.5rem 0">+ Lançamento manual (sem NF-e)</summary>
 
     <div class="card" style="margin-top:.5rem">
-      <div class="card-head"><span class="card-title" id="title-madeira">Madeira — Manual</span></div>
+      <div class="card-head"><span class="card-title" id="title-compra">Nova Compra</span></div>
       <div class="card-body">
-        <form id="form-madeira" onsubmit="saveMadeira(event)">
+        <form id="form-compra" onsubmit="saveCompra(event)">
           <div class="form-grid">
-            <div class="fg"><label>Data Recebimento *</label><input type="date" id="cm-data" required></div>
-            <div class="fg"><label>Fornecedor *</label><input type="text" id="cm-fornecedor" required placeholder="Ex: Serraria São João"></div>
-            <div class="fg"><label>Nº NF</label><input type="text" id="cm-nf" placeholder="Ex: 00123"></div>
-            <div class="fg"><label>Volume m³ *</label><input type="number" id="cm-volume" step="0.001" min="0.001" required placeholder="0.000"></div>
-            <div class="fg"><label>Valor Total R$ *</label><input type="number" id="cm-valor" step="0.01" min="0" required placeholder="0.00"></div>
-            <div class="fg"><label>R$/m³ (calculado)</label><input class="computed" id="cm-rpm3" readonly value="—"></div>
-            <div class="fg"><label>Larguras (mm)</label><input type="text" id="cm-larguras" placeholder="Ex: 160, 180, 200"></div>
-          </div>
-          <div class="form-actions">
-            <button type="submit" class="btn btn-primary">Salvar</button>
-            <button type="button" class="btn btn-secondary" onclick="cancelEdit('madeira')">Novo</button>
-            <button type="button" class="btn btn-danger" id="btn-del-madeira" style="display:none" onclick="deleteMadeira()">Excluir</button>
-            <span class="form-hint" id="hint-madeira"></span>
-          </div>
-        </form>
-      </div>
-    </div>
-
-    <div class="card amber" style="margin-top:.5rem">
-      <div class="card-head"><span class="card-title" id="title-adesivo">Adesivo — Manual</span></div>
-      <div class="card-body">
-        <form id="form-adesivo" onsubmit="saveAdesivo(event)">
-          <div class="form-grid">
-            <div class="fg"><label>Data Recebimento *</label><input type="date" id="ca-data" required></div>
-            <div class="fg"><label>Fornecedor *</label><input type="text" id="ca-fornecedor" required placeholder="Ex: Birka"></div>
-            <div class="fg"><label>Nº NF</label><input type="text" id="ca-nf" placeholder="Ex: 71"></div>
-            <div class="fg"><label>Produto</label>
-              <select id="ca-produto"><option value="TLP_40">TLP 40</option><option value="TLP_10">TLP 10</option></select>
+            <div class="fg"><label>Categoria *</label>
+              <select id="cc-cat" onchange="updateCompraForm()">
+                <option value="madeira">Madeira</option>
+                <option value="cola">Cola</option>
+                <option value="energia">Energia</option>
+                <option value="frete">Frete</option>
+                <option value="tratamento">Tratamento</option>
+                <option value="secagem">Secagem</option>
+                <option value="outros">Outros</option>
+              </select>
             </div>
-            <div class="fg"><label>Quantidade kg *</label><input type="number" id="ca-kg" step="0.1" min="0.1" required placeholder="0.0"></div>
-            <div class="fg"><label>Valor Total R$ *</label><input type="number" id="ca-valor" step="0.01" min="0" required placeholder="0.00"></div>
-            <div class="fg"><label>R$/kg (calculado)</label><input class="computed amber" id="ca-rpkg" readonly value="—"></div>
+            <div class="fg"><label>Data *</label><input type="date" id="cc-data" required></div>
+            <div class="fg"><label>Fornecedor *</label><input type="text" id="cc-forn" required></div>
+            <div class="fg"><label>N. NF</label><input type="text" id="cc-nf"></div>
+            <div class="fg"><label>Descricao</label><input type="text" id="cc-desc" placeholder="Ex: Eucalipto 40mm"></div>
+            <div class="fg" id="fg-qty"><label id="cc-qty-label">Quantidade *</label><input type="number" id="cc-qty" step="0.001" min="0" required></div>
+            <div class="fg"><label>Valor Total R$ *</label><input type="number" id="cc-valor" step="0.01" min="0" required></div>
+            <div class="fg"><label id="cc-unit-label">R$/un (calculado)</label><input class="computed" id="cc-unit" readonly value="—"></div>
+            <div class="fg" id="fg-pedido" style="display:none"><label>Pedido vinculado</label>
+              <select id="cc-pedido"><option value="">— nenhum —</option></select>
+            </div>
           </div>
           <div class="form-actions">
             <button type="submit" class="btn btn-primary">Salvar</button>
-            <button type="button" class="btn btn-secondary" onclick="cancelEdit('adesivo')">Novo</button>
-            <button type="button" class="btn btn-danger" id="btn-del-adesivo" style="display:none" onclick="deleteAdesivo()">Excluir</button>
-            <span class="form-hint" id="hint-adesivo"></span>
+            <button type="button" class="btn btn-secondary" onclick="cancelEditCompra()">Novo</button>
+            <button type="button" class="btn btn-danger" id="btn-del-compra" style="display:none" onclick="deleteCompra()">Excluir</button>
+            <span class="form-hint" id="hint-compra"></span>
           </div>
         </form>
       </div>
@@ -424,6 +418,30 @@ tbody tr:hover { background: #f8f7f5; cursor: pointer; }
     <div class="card-head"><span class="card-title">Apontamentos</span></div>
     <div class="card-body" style="padding-top:0"><div class="tbl-wrap"><div id="list-estmensal"></div></div></div>
   </div>
+
+  <!-- LEITURA DE TAMBOR — Cola -->
+  <div class="card amber">
+    <div class="card-head"><span class="card-title" id="title-tambor">Leitura de Tambor (Cola)</span></div>
+    <div class="card-body">
+      <form id="form-tambor" onsubmit="saveTambor(event)">
+        <div class="form-grid">
+          <div class="fg"><label>Data *</label><input type="date" id="tb-data" required></div>
+          <div class="fg"><label>kg Remanescente *</label><input type="number" id="tb-kg" step="0.1" min="0" required placeholder="0.0"></div>
+          <div class="fg"><label>Observacoes</label><input type="text" id="tb-obs" placeholder="Ex: Tambor 2 vazio"></div>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">Salvar</button>
+          <button type="button" class="btn btn-secondary" onclick="cancelEditTambor()">Novo</button>
+          <button type="button" class="btn btn-danger" id="btn-del-tambor" style="display:none" onclick="deleteTambor()">Excluir</button>
+          <span class="form-hint" id="hint-tambor"></span>
+        </div>
+      </form>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-head"><span class="card-title">Leituras de Tambor</span></div>
+    <div class="card-body" style="padding-top:0"><div class="tbl-wrap"><div id="list-tambor"></div></div></div>
+  </div>
 </section>
 
 <!-- ════════════════ MARGENS ════════════════ -->
@@ -491,7 +509,12 @@ tbody tr:hover { background: #f8f7f5; cursor: pointer; }
           <label>Tipo de dado</label>
           <select id="imp-sheet-tipo" style="border:1px solid var(--border);border-radius:4px;padding:.38rem .6rem;font-family:var(--font);font-size:.85rem">
             <option value="madeira">Compras de Madeira</option>
-            <option value="adesivo">Compras de Adesivo</option>
+            <option value="cola">Compras de Cola/Adesivo</option>
+            <option value="energia">Compras de Energia</option>
+            <option value="frete">Frete</option>
+            <option value="tratamento">Tratamento</option>
+            <option value="secagem">Secagem</option>
+            <option value="outros">Outros custos</option>
             <option value="pedidos">Pedidos</option>
             <option value="itens_pedido">Itens de Pedido (Ordem de Produção)</option>
           </select>
@@ -540,6 +563,35 @@ tbody tr:hover { background: #f8f7f5; cursor: pointer; }
           <input type="file" accept=".json" style="display:none" onchange="importJSON(this)">
         </label>
       </div>
+    </div>
+  </div>
+
+  <!-- GitHub Sync -->
+  <div class="card" style="border-top-color:var(--green-mid)">
+    <div class="card-head">
+      <span class="card-title">Salvar dados no GitHub</span>
+      <span style="font-size:.72rem; color:var(--muted)">Usa um arquivo JSON no repositório</span>
+    </div>
+    <div class="card-body">
+      <div class="form-grid">
+        <div class="fg"><label>Owner</label><input type="text" id="gh-owner" value="almodesti"></div>
+        <div class="fg"><label>Repositório</label><input type="text" id="gh-repo" value="floresti-custo-real"></div>
+        <div class="fg"><label>Branch</label><input type="text" id="gh-branch" value="main"></div>
+        <div class="fg"><label>Arquivo de dados</label><input type="text" id="gh-path" value="data/custo-real.json"></div>
+        <div class="fg" style="grid-column:1/-1"><label>Token GitHub</label><input type="password" id="gh-token" placeholder="Token com permissão Contents: read/write"></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" onclick="saveToGitHub()">Salvar no GitHub</button>
+        <button class="btn btn-secondary" onclick="loadFromGitHub()">Carregar do GitHub</button>
+        <label style="font-size:.78rem; color:var(--muted); display:flex; align-items:center; gap:.35rem">
+          <input type="checkbox" id="gh-autoload" onchange="saveGitHubConfig()"> carregar ao abrir
+        </label>
+        <span class="form-hint" id="hint-github"></span>
+      </div>
+      <p style="font-size:.78rem; color:var(--muted); margin-top:.7rem; line-height:1.5">
+        Para gravar, crie um fine-grained token no GitHub com acesso a este repositório e permissão
+        <strong>Contents: Read and write</strong>. O token fica salvo só neste navegador.
+      </p>
     </div>
   </div>
 
@@ -609,31 +661,95 @@ tbody tr:hover { background: #f8f7f5; cursor: pointer; }
 // ═══════════════════════════════════════════════════════
 function emptyState() {
   return {
-    version: '1.0.0',
+    version: '2.1.0',
     estoque_inicial: { m3_bruto_pool:0, m3_2a_linha:0, m3_refilo:0, taxa_kg_m3_padrao:0.25, espessura_lamela_mm:30.07, r_m3_bruto:0, r_kg_adesivo:0 },
-    compras_madeira: [],
-    compras_adesivo: [],
+    compras: [],
     pedidos: [],
-    apontamentos_mensais: []
+    apontamentos_mensais: [],
+    leituras_tambor: []
   };
 }
 
 let state = emptyState();
-let editId = { madeira:null, adesivo:null, pedido:null, estMensal:null };
+let editId = { compra:null, pedido:null, estMensal:null, tambor:null };
 let formItens = [];
 
+const CATEGORIAS = {
+  madeira:    { label:'Madeira',    unidade:'m\u00B3',  cor:'badge-green' },
+  cola:       { label:'Cola',       unidade:'kg',  cor:'badge-amber' },
+  energia:    { label:'Energia',    unidade:'kWh', cor:'badge-primary' },
+  frete:      { label:'Frete',      unidade:'R$',  cor:'badge-gray' },
+  tratamento: { label:'Tratamento', unidade:'R$',  cor:'badge-gray' },
+  secagem:    { label:'Secagem',    unidade:'R$',  cor:'badge-gray' },
+  outros:     { label:'Outros',     unidade:'R$',  cor:'badge-gray' }
+};
+function comprasCat(cat, ateDt) {
+  return state.compras.filter(c => c.categoria===cat && (!ateDt || c.data<=ateDt));
+}
+
 const STORAGE_KEY = 'floresti_custo_real';
+const GITHUB_SYNC_KEY = 'floresti_github_sync';
 function saveState() {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) { /* quota or file:// */ }
 }
+function compraFromMadeira(c) {
+  return {
+    id: c.id || uid(),
+    categoria: 'madeira',
+    data: c.data || c.data_recebimento || today(),
+    fornecedor: c.fornecedor || '(importado)',
+    nf: c.nf || '',
+    descricao: c.descricao || c.larguras || c._produto || '',
+    quantidade: +(c.quantidade ?? c.volume_m3) || 0,
+    unidade: 'm\u00B3',
+    valor_total: +c.valor_total || 0,
+    pedido_vinculado: c.pedido_vinculado || null
+  };
+}
+function compraFromCola(c) {
+  return {
+    id: c.id || uid(),
+    categoria: 'cola',
+    data: c.data || c.data_recebimento || today(),
+    fornecedor: c.fornecedor || '(importado)',
+    nf: c.nf || '',
+    descricao: c.descricao || c.produto || c._produto || 'TLP_40',
+    quantidade: +(c.quantidade ?? c.kg) || 0,
+    unidade: 'kg',
+    valor_total: +c.valor_total || 0,
+    pedido_vinculado: null
+  };
+}
+function migrateToUnifiedCompras(data) {
+  return [
+    ...(data.compras||[]),
+    ...(data.compras_madeira||[]).map(compraFromMadeira),
+    ...(data.compras_adesivo||[]).map(compraFromCola)
+  ];
+}
+
 function loadState() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const data = JSON.parse(raw);
-      if (data && data.compras_madeira !== undefined) {
+      if (!data) return false;
+      // Old format: has compras_madeira → migrate
+      if (data.compras_madeira !== undefined) {
+        const migrated = migrateToUnifiedCompras(data);
+        state = { ...emptyState(), ...data, compras: migrated };
+        delete state.compras_madeira;
+        delete state.compras_adesivo;
+        state.version = '2.1.0';
+        ['compras','pedidos','apontamentos_mensais','leituras_tambor']
+          .forEach(k => { if (!Array.isArray(state[k])) state[k] = []; });
+        saveState();
+        return true;
+      }
+      // New format: has compras array
+      if (data.compras !== undefined) {
         state = { ...emptyState(), ...data };
-        ['compras_madeira','compras_adesivo','pedidos','apontamentos_mensais']
+        ['compras','pedidos','apontamentos_mensais','leituras_tambor']
           .forEach(k => { if (!Array.isArray(state[k])) state[k] = []; });
         return true;
       }
@@ -683,7 +799,7 @@ function prevMes(ym) {
 function allMeses() {
   const s = new Set();
   state.pedidos.forEach(p => p.data_entrega && s.add(dateToMes(p.data_entrega)));
-  state.compras_madeira.forEach(c => s.add(dateToMes(c.data_recebimento)));
+  state.compras.forEach(c => c.data && s.add(dateToMes(c.data)));
   state.apontamentos_mensais.forEach(a => s.add(a.mes_referencia));
   return [...s].filter(Boolean).sort();
 }
@@ -718,15 +834,15 @@ function m3BrutoPedido(p) {
 function precoM3Pool(data) {
   const ei = state.estoque_inicial;
   let m3 = +ei.m3_bruto_pool||0, rs = (+ei.r_m3_bruto||0) * m3;
-  state.compras_madeira.filter(c => c.data_recebimento <= data)
-    .forEach(c => { m3 += c.volume_m3; rs += c.valor_total; });
+  comprasCat('madeira', data)
+    .forEach(c => { m3 += c.quantidade; rs += c.valor_total; });
   return m3 > 0 ? rs/m3 : null;
 }
 
 function precoKgPool(data) {
   let kg = 0, rs = 0;
-  state.compras_adesivo.filter(c => c.data_recebimento <= data && c.produto==='TLP_40')
-    .forEach(c => { kg += c.kg; rs += c.valor_total; });
+  comprasCat('cola', data)
+    .forEach(c => { kg += c.quantidade; rs += c.valor_total; });
   return kg > 0 ? rs/kg : null;
 }
 
@@ -744,7 +860,7 @@ function fatorMes(mesRef) {
   const m3Ped = state.pedidos.filter(p => p.data_entrega && dateToMes(p.data_entrega)===mesRef)
     .reduce((s,p) => s + m3Aplainado(p), 0);
   if (m3Ped === 0) return null;
-  const ent  = state.compras_madeira.filter(c => dateToMes(c.data_recebimento)===mesRef).reduce((s,c) => s+c.volume_m3,0);
+  const ent  = comprasCat('madeira').filter(c => dateToMes(c.data)===mesRef).reduce((s,c) => s+c.quantidade,0);
   const vBruto = apt.m3_bruto_remanescente - aptAnt.m3_bruto_remanescente;
   const v2a    = apt.m3_2a_linha           - aptAnt.m3_2a_linha;
   const vRef   = apt.m3_refilo             - aptAnt.m3_refilo;
@@ -775,11 +891,33 @@ function custoPedido(pid) {
   // custo madeira via fórmula da plaina (ADENDO §3) — não usa fator mensal
   const cM = pM3!=null ? pM3*m3B : null;
   const cA = pKg!=null ? pKg*kgAde : null;
-  const cT = (cM!=null&&cA!=null) ? cM+cA : null;
+
+  // Frete: direct link to order
+  const cFrete = state.compras.filter(c => c.categoria==='frete' && c.pedido_vinculado===pid)
+    .reduce((s,c) => s+c.valor_total, 0);
+
+  // Tratamento + Secagem: proportional to m³ bruto in the month
+  const mes = dateToMes(p.data_entrega);
+  const totalBrutoMes = state.pedidos.filter(q => q.data_entrega && dateToMes(q.data_entrega)===mes)
+    .reduce((s,q) => s + m3BrutoPedido(q), 0);
+  const tratMes = comprasCat('tratamento').filter(c => dateToMes(c.data)===mes).reduce((s,c) => s+c.valor_total, 0);
+  const secMes = comprasCat('secagem').filter(c => dateToMes(c.data)===mes).reduce((s,c) => s+c.valor_total, 0);
+  const cTrat = totalBrutoMes > 0 ? (tratMes / totalBrutoMes) * m3B : 0;
+  const cSec = totalBrutoMes > 0 ? (secMes / totalBrutoMes) * m3B : 0;
+
+  // Energia + Outros: proportional to m³ aplainado in the month
+  const totalAplMes = state.pedidos.filter(q => q.data_entrega && dateToMes(q.data_entrega)===mes)
+    .reduce((s,q) => s + m3Aplainado(q), 0);
+  const enMes = comprasCat('energia').filter(c => dateToMes(c.data)===mes).reduce((s,c) => s+c.valor_total, 0);
+  const outMes = comprasCat('outros').filter(c => dateToMes(c.data)===mes).reduce((s,c) => s+c.valor_total, 0);
+  const cEn = totalAplMes > 0 ? (enMes / totalAplMes) * m3 : 0;
+  const cOut = totalAplMes > 0 ? (outMes / totalAplMes) * m3 : 0;
+
+  const cT = (cM!=null&&cA!=null) ? cM+cA+cFrete+cTrat+cSec+cEn+cOut : null;
   const mR = cT!=null ? p.valor_venda - cT : null;
   const mP = (mR!=null&&p.valor_venda) ? mR/p.valor_venda*100 : null;
   const taxaMedia = m3 > 0 ? kgAde/m3 : null;
-  return { m3, m3B, pM3, pKg, kgAde, taxaMedia, cM, cA, cT, mR, mP,
+  return { m3, m3B, pM3, pKg, kgAde, taxaMedia, cM, cA, cFrete, cTrat, cSec, cEn, cOut, cT, mR, mP,
     ok: cT!=null,
     av: { semM3Pool: pM3==null, semKgPool: pKg==null } };
 }
@@ -788,10 +926,12 @@ function balancaMes(mesRef) {
   const fR  = fatorMes(mesRef);
   const apt = state.apontamentos_mensais.find(a => a.mes_referencia===mesRef);
   const pM3 = precoM3Pool(mesRef+'-28');
-  const entM3 = state.compras_madeira.filter(c => dateToMes(c.data_recebimento)===mesRef).reduce((s,c)=>s+c.volume_m3,0);
-  const entRS = state.compras_madeira.filter(c => dateToMes(c.data_recebimento)===mesRef).reduce((s,c)=>s+c.valor_total,0);
-  const adKg  = state.compras_adesivo.filter(c=>c.produto==='TLP_40'&&dateToMes(c.data_recebimento)===mesRef).reduce((s,c)=>s+c.kg,0);
-  const adRS  = state.compras_adesivo.filter(c=>c.produto==='TLP_40'&&dateToMes(c.data_recebimento)===mesRef).reduce((s,c)=>s+c.valor_total,0);
+  const madMes = comprasCat('madeira').filter(c => dateToMes(c.data)===mesRef);
+  const entM3 = madMes.reduce((s,c)=>s+c.quantidade,0);
+  const entRS = madMes.reduce((s,c)=>s+c.valor_total,0);
+  const colaMes = comprasCat('cola').filter(c => dateToMes(c.data)===mesRef);
+  const adKg  = colaMes.reduce((s,c)=>s+c.quantidade,0);
+  const adRS  = colaMes.reduce((s,c)=>s+c.valor_total,0);
   const pedsMes = state.pedidos.filter(p=>p.data_entrega&&dateToMes(p.data_entrega)===mesRef);
   const m3Ped = fR ? fR.m3Ped : pedsMes.reduce((s,p)=>s+m3Aplainado(p),0);
   const kgCons = pedsMes.reduce((s,p)=>s+kgAdesivoPedido(p),0);
@@ -863,8 +1003,8 @@ function calcKPIs(ini, fim) {
   const ei = state.estoque_inicial;
 
   // KPI 1 — Bruto entrado
-  const madP = state.compras_madeira.filter(c => c.data_recebimento >= ini && c.data_recebimento <= fim);
-  const k1m3 = madP.reduce((s,c)=>s+c.volume_m3,0);
+  const madP = comprasCat('madeira').filter(c => c.data >= ini && c.data <= fim);
+  const k1m3 = madP.reduce((s,c)=>s+c.quantidade,0);
   const k1rs = madP.reduce((s,c)=>s+c.valor_total,0);
 
   // KPI 2 — MLC produzido
@@ -916,7 +1056,7 @@ function calcKPIs(ini, fim) {
   const k9m3tot   = custos.reduce((s,c)=>s+c.m3,0);
   const k9cMad    = custos.reduce((s,c)=>s+(c.cM||0),0);
   const k9cAde    = custos.reduce((s,c)=>s+(c.cA||0),0);
-  const k9cTot    = k9cMad + k9cAde;
+  const k9cTot    = custos.reduce((s,c)=>s+(c.cT||0),0);
   const k9rpm3    = k9m3tot>0 ? k9cTot/k9m3tot : null;
   const k9madRpm3 = k9m3tot>0 ? k9cMad/k9m3tot : null;
   const k9adeRpm3 = k9m3tot>0 ? k9cAde/k9m3tot : null;
@@ -973,8 +1113,8 @@ function renderPainel() {
     return temPed && !temApt;
   });
   if (mesesSemApt.length) alertas.push(`<div class="alert alert-warn">⚠ Sem apontamento em: ${mesesSemApt.map(mesLabel).join(', ')} — KPIs de estoque incompletos.</div>`);
-  if (!state.compras_madeira.length) alertas.push('<div class="alert alert-info">ℹ Nenhuma compra de madeira cadastrada.</div>');
-  if (!state.compras_adesivo.length) alertas.push('<div class="alert alert-info">ℹ Nenhuma compra de adesivo cadastrada.</div>');
+  if (!comprasCat('madeira').length) alertas.push('<div class="alert alert-info">ℹ Nenhuma compra de madeira cadastrada.</div>');
+  if (!comprasCat('cola').length) alertas.push('<div class="alert alert-info">ℹ Nenhuma compra de cola/adesivo cadastrada.</div>');
   if (!alertas.length) alertas.push('<div class="alert alert-ok">✓ Todos os dados necessários estão presentes.</div>');
   document.getElementById('painel-alertas').innerHTML = alertas.join('');
 
@@ -1037,7 +1177,7 @@ function renderPainel() {
       'Qual é o custo real R$/m³ de MLC acabado?',
       k.k9.rpm3 != null ? brl(k.k9.rpm3)+'/m³' : null,
       k.k9.rpm3 != null
-        ? `Madeira: <strong>${brl(k.k9.madRpm3)}/m³</strong> · Cola: <strong>${brl(k.k9.adeRpm3)}/m³</strong><br><em>Não inclui M.O., energia, frete</em>`
+        ? `Madeira: <strong>${brl(k.k9.madRpm3)}/m³</strong> · Cola: <strong>${brl(k.k9.adeRpm3)}/m³</strong><br><em>Inclui frete, energia, tratamento se cadastrados</em>`
         : 'Requer pedidos com data de entrega',
       k.k9.conf, verde),
   ];
@@ -1081,55 +1221,54 @@ function renderAdesivo() {
 // ═══════════════════════════════════════════════════════
 function renderCompras() {
   renderMadeira(); renderAdesivo();
+  updatePedidoOptions(document.getElementById('cc-pedido')?.value || '');
 
   // KPIs dos pools
-  const pM3 = precoM3Pool(today());
-  const pKg = precoKgPool(today());
-  const totM3 = state.compras_madeira.reduce((s,c)=>s+c.volume_m3,0);
-  const totRsM = state.compras_madeira.reduce((s,c)=>s+c.valor_total,0);
-  const totKg = state.compras_adesivo.filter(c=>c.produto==='TLP_40').reduce((s,c)=>s+c.kg,0);
-  const totRsA = state.compras_adesivo.filter(c=>c.produto==='TLP_40').reduce((s,c)=>s+c.valor_total,0);
+  const madList = comprasCat('madeira');
+  const colaList = comprasCat('cola');
+  const totM3 = madList.reduce((s,c)=>s+c.quantidade,0);
+  const totRsM = madList.reduce((s,c)=>s+c.valor_total,0);
+  const totKg = colaList.reduce((s,c)=>s+c.quantidade,0);
+  const totRsA = colaList.reduce((s,c)=>s+c.valor_total,0);
   document.getElementById('compras-kpi-madeira').innerHTML = totM3>0
-    ? `${state.compras_madeira.length} compra(s) · ${m3f(totM3)} · ${brl(totRsM)}`
+    ? `${madList.length} compra(s) · ${m3f(totM3)} · ${brl(totRsM)}`
     : 'Nenhuma compra';
   document.getElementById('compras-kpi-adesivo').innerHTML = totKg>0
-    ? `${state.compras_adesivo.length} compra(s) · ${kgf(totKg)} · ${brl(totRsA)}`
+    ? `${colaList.length} compra(s) · ${kgf(totKg)} · ${brl(totRsA)}`
     : 'Nenhuma compra';
 
   // Filtro buttons
-  ['todas','madeira','adesivo'].forEach(f => {
+  Object.keys(CATEGORIAS).concat(['todas']).forEach(f => {
     const btn = document.getElementById('fc-'+f);
     if (btn) btn.style.fontWeight = filtroCompras===f ? '700' : '400';
   });
 
   // Tabela unificada
-  const all = [
-    ...state.compras_madeira.map(c => ({...c, _tipo:'madeira', _data:c.data_recebimento, _valor:c.valor_total})),
-    ...state.compras_adesivo.map(c => ({...c, _tipo:'adesivo', _data:c.data_recebimento, _valor:c.valor_total}))
-  ].filter(c => filtroCompras==='todas' || c._tipo===filtroCompras)
-   .sort((a,b) => b._data.localeCompare(a._data));
+  const all = state.compras
+    .filter(c => filtroCompras==='todas' || c.categoria===filtroCompras)
+    .slice().sort((a,b) => (b.data||'').localeCompare(a.data||''));
 
   const rows = all.map(c => {
-    const isMad = c._tipo==='madeira';
-    const tipoBadge = isMad
-      ? '<span class="badge badge-green" style="font-size:.7rem">Madeira</span>'
-      : '<span class="badge badge-amber" style="font-size:.7rem">Adesivo</span>';
-    const qty = isMad ? m3f(c.volume_m3) : kgf(c.kg);
-    const unit = isMad ? (c.volume_m3 ? brl(c.valor_total/c.volume_m3)+'/m³' : '—') : (c.kg ? brl(c.valor_total/c.kg)+'/kg' : '—');
-    const onclick = isMad ? `editMadeira('${c.id}')` : `editAdesivo('${c.id}')`;
-    return `<tr onclick="${onclick}">
-      <td>${fmtDate(c._data)}</td>
+    const cat = CATEGORIAS[c.categoria] || { label:c.categoria, cor:'badge-gray', unidade:'R$' };
+    const tipoBadge = `<span class="badge ${cat.cor}" style="font-size:.7rem">${cat.label}</span>`;
+    const qty = c.categoria==='madeira' ? m3f(c.quantidade)
+              : c.categoria==='cola' ? kgf(c.quantidade)
+              : c.categoria==='energia' ? (c.quantidade ? c.quantidade.toFixed(1)+' kWh' : '—')
+              : (c.quantidade ? brl(c.quantidade) : '—');
+    const unit = c.quantidade > 0 ? brl(c.valor_total/c.quantidade)+'/'+cat.unidade : '—';
+    return `<tr onclick="editCompra('${c.id}')">
+      <td>${fmtDate(c.data)}</td>
       <td>${tipoBadge}</td>
       <td>${c.fornecedor}</td>
       <td>${c.nf||'—'}</td>
       <td class="mono">${qty}</td>
-      <td class="mono">${brl(c._valor)}</td>
+      <td class="mono">${brl(c.valor_total)}</td>
       <td class="mono">${unit}</td>
     </tr>`;
   }).join('');
 
   document.getElementById('list-compras').innerHTML = rows ? `
-    <table><thead><tr><th>Data</th><th>Tipo</th><th>Fornecedor</th><th>NF</th><th>Qtd</th><th>Total</th><th>Preço unit.</th></tr></thead>
+    <table><thead><tr><th>Data</th><th>Tipo</th><th>Fornecedor</th><th>NF</th><th>Qtd</th><th>Total</th><th>Preco unit.</th></tr></thead>
     <tbody>${rows}</tbody></table>`
     : '<div class="tbl-empty">Nenhuma compra cadastrada. Importe XML ou preencha manualmente.</div>';
 }
@@ -1137,7 +1276,6 @@ function renderCompras() {
 // Import helpers direto nas abas
 function importComprasPlanilha(input) {
   const file = input.files[0]; if (!file) return;
-  // Auto-detect: tenta madeira primeiro, se não achar colunas de kg tenta adesivo
   document.getElementById('imp-sheet-tipo').value = 'madeira';
   importPlanilha(input);
 }
@@ -1193,6 +1331,22 @@ function renderEstMensal() {
     <table><thead><tr><th>Mês</th><th>2ª Linha</th><th>Refilo</th><th>Bruto rem.</th><th>Fator mês</th><th>Data apontamento</th></tr></thead>
     <tbody>${rows}</tbody></table>`
     : '<div class="tbl-empty">Nenhum apontamento cadastrado.</div>';
+  renderTambor();
+}
+
+function renderTambor() {
+  const rows = [...state.leituras_tambor]
+    .sort((a,b)=>(b.data||'').localeCompare(a.data||''))
+    .map(t => `<tr onclick="editTambor('${t.id}')">
+      <td>${fmtDate(t.data)}</td>
+      <td class="mono">${kgf(t.kg_remanescente)}</td>
+      <td>${t.obs||'—'}</td>
+    </tr>`).join('');
+
+  document.getElementById('list-tambor').innerHTML = rows ? `
+    <table><thead><tr><th>Data</th><th>kg remanescente</th><th>Observações</th></tr></thead>
+    <tbody>${rows}</tbody></table>`
+    : '<div class="tbl-empty">Nenhuma leitura cadastrada.</div>';
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1332,7 +1486,7 @@ function renderBalanco() {
 // EXPORTAR MARGENS CSV
 // ═══════════════════════════════════════════════════════
 function exportMargensCSV() {
-  const headers = ['Orcamento','Cliente','Local','Data Entrega','m3 Aplainado','Valor Venda (R$)','Custo Madeira (R$)','Custo Adesivo (R$)','Custo Total (R$)','Margem R$','Margem %'];
+  const headers = ['Orcamento','Cliente','Local','Data Entrega','m3 Aplainado','Valor Venda (R$)','Custo Madeira (R$)','Custo Cola (R$)','Frete (R$)','Tratamento (R$)','Secagem (R$)','Energia (R$)','Outros (R$)','Custo Total (R$)','Margem R$','Margem %'];
   const rows = [...state.pedidos]
     .sort((a,b) => (b.data_entrega||'').localeCompare(a.data_entrega||''))
     .map(p => {
@@ -1343,6 +1497,11 @@ function exportMargensCSV() {
         (p.valor_venda||0).toFixed(2),
         c?.cM != null ? c.cM.toFixed(2) : '',
         c?.cA != null ? c.cA.toFixed(2) : '',
+        c?.cFrete != null ? c.cFrete.toFixed(2) : '',
+        c?.cTrat != null ? c.cTrat.toFixed(2) : '',
+        c?.cSec != null ? c.cSec.toFixed(2) : '',
+        c?.cEn != null ? c.cEn.toFixed(2) : '',
+        c?.cOut != null ? c.cOut.toFixed(2) : '',
         c?.cT != null ? c.cT.toFixed(2) : '',
         c?.mR != null ? c.mR.toFixed(2) : '',
         c?.mP != null ? c.mP.toFixed(2) : ''
@@ -1363,36 +1522,25 @@ function exportMargensCSV() {
 // RENDER — DADOS
 // ═══════════════════════════════════════════════════════
 function renderDados() {
+  const totalPorCat = cat => state.compras.filter(c => c.categoria === cat).length;
   document.getElementById('dados-resumo').innerHTML = `
     <dl class="detail-box" style="grid-template-columns: 1fr 1fr">
-      <dt>Compras madeira</dt><dd>${state.compras_madeira.length}</dd>
-      <dt>Compras adesivo</dt><dd>${state.compras_adesivo.length}</dd>
+      <dt>Compras madeira</dt><dd>${totalPorCat('madeira')}</dd>
+      <dt>Compras cola</dt><dd>${totalPorCat('cola')}</dd>
+      <dt>Outros custos</dt><dd>${state.compras.length - totalPorCat('madeira') - totalPorCat('cola')}</dd>
       <dt>Pedidos</dt><dd>${state.pedidos.length}</dd>
       <dt>Apontamentos mensais</dt><dd>${state.apontamentos_mensais.length}</dd>
+      <dt>Leituras tambor</dt><dd>${state.leituras_tambor.length}</dd>
       <dt>Versão</dt><dd>${state.version}</dd>
     </dl>`;
 }
 
 // ═══════════════════════════════════════════════════════
-// FORM HANDLERS — MADEIRA
+// FORM HANDLERS — COMPRAS
 // ═══════════════════════════════════════════════════════
 function cancelEdit(entity) {
   editId[entity] = null;
-  if (entity === 'madeira') {
-    document.getElementById('form-madeira').reset();
-    document.getElementById('title-madeira').textContent = 'Nova Compra';
-    document.getElementById('btn-del-madeira').style.display = 'none';
-    document.getElementById('hint-madeira').textContent = '';
-    document.getElementById('cm-rpm3').value = '—';
-    document.getElementById('cm-data').value = today();
-  } else if (entity === 'adesivo') {
-    document.getElementById('form-adesivo').reset();
-    document.getElementById('title-adesivo').textContent = 'Nova Compra';
-    document.getElementById('btn-del-adesivo').style.display = 'none';
-    document.getElementById('hint-adesivo').textContent = '';
-    document.getElementById('ca-rpkg').value = '—';
-    document.getElementById('ca-data').value = today();
-  } else if (entity === 'pedido') {
+  if (entity === 'pedido') {
     editId.pedido = null;
     formItens = [];
     document.getElementById('form-pedido').reset();
@@ -1409,128 +1557,161 @@ function cancelEdit(entity) {
   }
 }
 
-function saveMadeira(e) {
+function categoriaUnidade(cat) {
+  return (CATEGORIAS[cat] || CATEGORIAS.outros).unidade;
+}
+
+function updateCompraForm() {
+  const cat = document.getElementById('cc-cat').value;
+  const unidade = categoriaUnidade(cat);
+  const qty = document.getElementById('cc-qty');
+  const qtyLabel = document.getElementById('cc-qty-label');
+  const unitLabel = document.getElementById('cc-unit-label');
+  const fgPedido = document.getElementById('fg-pedido');
+
+  qtyLabel.textContent = cat === 'frete' || cat === 'tratamento' || cat === 'secagem' || cat === 'outros'
+    ? 'Base de rateio *'
+    : `Quantidade (${unidade}) *`;
+  qty.placeholder = unidade === 'R$' ? 'Use 1 para custo fixo ou valor da base' : '0.000';
+  unitLabel.textContent = `R$/${unidade} (calculado)`;
+  fgPedido.style.display = cat === 'frete' ? '' : 'none';
+  updateCompraUnit();
+}
+
+function updatePedidoOptions(selected) {
+  const sel = document.getElementById('cc-pedido');
+  sel.innerHTML = '<option value="">— nenhum —</option>' + state.pedidos
+    .slice()
+    .sort((a,b)=>(b.data_entrega||'').localeCompare(a.data_entrega||''))
+    .map(p => `<option value="${p.id}">${p.orcamento} — ${p.cliente}</option>`)
+    .join('');
+  sel.value = selected || '';
+}
+
+function saveCompra(e) {
   e.preventDefault();
-  const vol = parseFloat(document.getElementById('cm-volume').value);
-  const val = parseFloat(document.getElementById('cm-valor').value);
+  const cat = document.getElementById('cc-cat').value;
   const rec = {
-    id: editId.madeira || uid(),
-    data_recebimento: document.getElementById('cm-data').value,
-    fornecedor: document.getElementById('cm-fornecedor').value.trim(),
-    nf: document.getElementById('cm-nf').value.trim(),
-    volume_m3: vol,
-    valor_total: val,
-    larguras: document.getElementById('cm-larguras').value.trim()
+    id: editId.compra || uid(),
+    categoria: cat,
+    data: document.getElementById('cc-data').value,
+    fornecedor: document.getElementById('cc-forn').value.trim(),
+    nf: document.getElementById('cc-nf').value.trim(),
+    descricao: document.getElementById('cc-desc').value.trim(),
+    quantidade: parseFloat(document.getElementById('cc-qty').value)||0,
+    unidade: categoriaUnidade(cat),
+    valor_total: parseFloat(document.getElementById('cc-valor').value)||0,
+    pedido_vinculado: cat === 'frete' ? (document.getElementById('cc-pedido').value || null) : null
   };
-  if (editId.madeira) {
-    const i = state.compras_madeira.findIndex(c=>c.id===editId.madeira);
-    if (i>=0) state.compras_madeira[i] = rec;
+  if (editId.compra) {
+    const i = state.compras.findIndex(c=>c.id===editId.compra);
+    if (i>=0) state.compras[i] = rec;
   } else {
-    state.compras_madeira.push(rec);
+    state.compras.push(rec);
   }
-  document.getElementById('hint-madeira').textContent = '✓ Salvo em ' + new Date().toLocaleTimeString('pt-BR');
-  editId.madeira = null;
-  document.getElementById('btn-del-madeira').style.display = 'none';
-  document.getElementById('title-madeira').textContent = 'Nova Compra';
-  saveState(); renderCompras();
-  // recalc rpm3
-  document.getElementById('cm-rpm3').value = vol ? brl(val/vol)+'/m³' : '—';
-}
-
-function editMadeira(id) {
-  const c = state.compras_madeira.find(x=>x.id===id);
-  if (!c) return;
-  editId.madeira = id;
-  document.getElementById('cm-data').value        = c.data_recebimento;
-  document.getElementById('cm-fornecedor').value  = c.fornecedor;
-  document.getElementById('cm-nf').value          = c.nf||'';
-  document.getElementById('cm-volume').value      = c.volume_m3;
-  document.getElementById('cm-valor').value       = c.valor_total;
-  document.getElementById('cm-rpm3').value        = c.volume_m3 ? brl(c.valor_total/c.volume_m3)+'/m³' : '—';
-  document.getElementById('cm-larguras').value    = c.larguras||'';
-  document.getElementById('title-madeira').textContent = 'Editando Compra';
-  document.getElementById('btn-del-madeira').style.display = '';
-  document.getElementById('hint-madeira').textContent = '';
-  const det = document.querySelector('#s-compras details');
-  if (det) det.open = true;
-  document.getElementById('form-madeira').scrollIntoView({behavior:'smooth', block:'start'});
-}
-
-function deleteMadeira() {
-  if (!editId.madeira) return;
-  if (!confirm('Excluir esta compra de madeira?')) return;
-  state.compras_madeira = state.compras_madeira.filter(c=>c.id!==editId.madeira);
-  saveState(); cancelEdit('madeira'); renderCompras();
-}
-
-// live R$/m³
-document.getElementById('cm-volume').addEventListener('input', updateRpm3);
-document.getElementById('cm-valor').addEventListener('input', updateRpm3);
-function updateRpm3() {
-  const v = parseFloat(document.getElementById('cm-volume').value);
-  const r = parseFloat(document.getElementById('cm-valor').value);
-  document.getElementById('cm-rpm3').value = (v&&r) ? brl(r/v)+'/m³' : '—';
-}
-
-// ═══════════════════════════════════════════════════════
-// FORM HANDLERS — ADESIVO
-// ═══════════════════════════════════════════════════════
-function saveAdesivo(e) {
-  e.preventDefault();
-  const kg  = parseFloat(document.getElementById('ca-kg').value);
-  const val = parseFloat(document.getElementById('ca-valor').value);
-  const rec = {
-    id: editId.adesivo || uid(),
-    data_recebimento: document.getElementById('ca-data').value,
-    fornecedor: document.getElementById('ca-fornecedor').value.trim(),
-    nf: document.getElementById('ca-nf').value.trim(),
-    produto: document.getElementById('ca-produto').value,
-    kg, valor_total: val
-  };
-  if (editId.adesivo) {
-    const i = state.compras_adesivo.findIndex(c=>c.id===editId.adesivo);
-    if (i>=0) state.compras_adesivo[i] = rec;
-  } else {
-    state.compras_adesivo.push(rec);
-  }
-  document.getElementById('hint-adesivo').textContent = '✓ Salvo em ' + new Date().toLocaleTimeString('pt-BR');
-  editId.adesivo = null;
-  document.getElementById('btn-del-adesivo').style.display = 'none';
-  document.getElementById('title-adesivo').textContent = 'Nova Compra';
+  document.getElementById('hint-compra').textContent = '✓ Salvo em ' + new Date().toLocaleTimeString('pt-BR');
+  editId.compra = null;
+  document.getElementById('btn-del-compra').style.display = 'none';
+  document.getElementById('title-compra').textContent = 'Nova Compra';
   saveState(); renderCompras();
 }
 
-function editAdesivo(id) {
-  const c = state.compras_adesivo.find(x=>x.id===id);
+function editCompra(id) {
+  const c = state.compras.find(x=>x.id===id);
   if (!c) return;
-  editId.adesivo = id;
-  document.getElementById('ca-data').value       = c.data_recebimento;
-  document.getElementById('ca-fornecedor').value = c.fornecedor;
-  document.getElementById('ca-nf').value         = c.nf||'';
-  document.getElementById('ca-produto').value    = c.produto||'TLP_40';
-  document.getElementById('ca-kg').value         = c.kg;
-  document.getElementById('ca-valor').value      = c.valor_total;
-  document.getElementById('ca-rpkg').value       = c.kg ? brl(c.valor_total/c.kg)+'/kg' : '—';
-  document.getElementById('title-adesivo').textContent = 'Editando Compra';
-  document.getElementById('btn-del-adesivo').style.display = '';
-  const det = document.querySelector('#s-compras details');
+  editId.compra = id;
+  updatePedidoOptions(c.pedido_vinculado);
+  document.getElementById('cc-cat').value = c.categoria || 'outros';
+  document.getElementById('cc-data').value = c.data || today();
+  document.getElementById('cc-forn').value = c.fornecedor || '';
+  document.getElementById('cc-nf').value = c.nf || '';
+  document.getElementById('cc-desc').value = c.descricao || '';
+  document.getElementById('cc-qty').value = c.quantidade || 0;
+  document.getElementById('cc-valor').value = c.valor_total || 0;
+  document.getElementById('cc-pedido').value = c.pedido_vinculado || '';
+  updateCompraForm();
+  document.getElementById('title-compra').textContent = 'Editando Compra';
+  document.getElementById('btn-del-compra').style.display = '';
+  document.getElementById('hint-compra').textContent = '';
+  const det = document.getElementById('compra-form-details');
   if (det) det.open = true;
-  document.getElementById('form-adesivo').scrollIntoView({behavior:'smooth', block:'start'});
+  document.getElementById('form-compra').scrollIntoView({behavior:'smooth', block:'start'});
 }
 
-function deleteAdesivo() {
-  if (!editId.adesivo) return;
-  if (!confirm('Excluir esta compra de adesivo?')) return;
-  state.compras_adesivo = state.compras_adesivo.filter(c=>c.id!==editId.adesivo);
-  saveState(); cancelEdit('adesivo'); renderCompras();
+function deleteCompra() {
+  if (!editId.compra) return;
+  if (!confirm('Excluir esta compra?')) return;
+  state.compras = state.compras.filter(c=>c.id!==editId.compra);
+  saveState(); cancelEditCompra(); renderCompras();
 }
 
-document.getElementById('ca-kg').addEventListener('input', updateRpkg);
-document.getElementById('ca-valor').addEventListener('input', updateRpkg);
-function updateRpkg() {
-  const k = parseFloat(document.getElementById('ca-kg').value);
-  const r = parseFloat(document.getElementById('ca-valor').value);
-  document.getElementById('ca-rpkg').value = (k&&r) ? brl(r/k)+'/kg' : '—';
+function cancelEditCompra() {
+  editId.compra = null;
+  document.getElementById('form-compra').reset();
+  document.getElementById('cc-data').value = today();
+  document.getElementById('title-compra').textContent = 'Nova Compra';
+  document.getElementById('btn-del-compra').style.display = 'none';
+  document.getElementById('hint-compra').textContent = '';
+  document.getElementById('cc-unit').value = '—';
+  updatePedidoOptions();
+  updateCompraForm();
+}
+
+function updateCompraUnit() {
+  const q = parseFloat(document.getElementById('cc-qty').value);
+  const r = parseFloat(document.getElementById('cc-valor').value);
+  const unidade = categoriaUnidade(document.getElementById('cc-cat').value);
+  document.getElementById('cc-unit').value = (q&&r) ? brl(r/q)+'/'+unidade : '—';
+}
+
+function saveTambor(e) {
+  e.preventDefault();
+  const rec = {
+    id: editId.tambor || uid(),
+    data: document.getElementById('tb-data').value,
+    kg_remanescente: parseFloat(document.getElementById('tb-kg').value)||0,
+    obs: document.getElementById('tb-obs').value.trim()
+  };
+  if (editId.tambor) {
+    const i = state.leituras_tambor.findIndex(t=>t.id===editId.tambor);
+    if (i>=0) state.leituras_tambor[i] = rec;
+  } else {
+    state.leituras_tambor.push(rec);
+  }
+  document.getElementById('hint-tambor').textContent = '✓ Salvo em ' + new Date().toLocaleTimeString('pt-BR');
+  editId.tambor = null;
+  document.getElementById('btn-del-tambor').style.display = 'none';
+  document.getElementById('title-tambor').textContent = 'Leitura de Tambor (Cola)';
+  saveState(); renderTambor();
+}
+
+function editTambor(id) {
+  const t = state.leituras_tambor.find(x=>x.id===id);
+  if (!t) return;
+  editId.tambor = id;
+  document.getElementById('tb-data').value = t.data || today();
+  document.getElementById('tb-kg').value = t.kg_remanescente || 0;
+  document.getElementById('tb-obs').value = t.obs || '';
+  document.getElementById('title-tambor').textContent = 'Editando Leitura de Tambor';
+  document.getElementById('btn-del-tambor').style.display = '';
+  document.getElementById('hint-tambor').textContent = '';
+  document.getElementById('form-tambor').scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function deleteTambor() {
+  if (!editId.tambor) return;
+  if (!confirm('Excluir esta leitura de tambor?')) return;
+  state.leituras_tambor = state.leituras_tambor.filter(t=>t.id!==editId.tambor);
+  saveState(); cancelEditTambor(); renderTambor();
+}
+
+function cancelEditTambor() {
+  editId.tambor = null;
+  document.getElementById('form-tambor').reset();
+  document.getElementById('tb-data').value = today();
+  document.getElementById('title-tambor').textContent = 'Leitura de Tambor (Cola)';
+  document.getElementById('btn-del-tambor').style.display = 'none';
+  document.getElementById('hint-tambor').textContent = '';
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1730,16 +1911,10 @@ function importJSON(input) {
   reader.onload = function(ev) {
     try {
       const data = JSON.parse(ev.target.result);
-      // Detecta seed pelo campo "compras" (array vazio) e ausência de compras_madeira
-      const isSeed = data.pedidos && !data.compras_madeira && (data.compras !== undefined || data.lastSaved);
-      if (isSeed) {
-        applySeed(data);
-      } else if (data.version && data.compras_madeira !== undefined) {
-        // App format — tem compras_madeira
+      if (data.version && (data.compras !== undefined || data.compras_madeira !== undefined)) {
         if (!confirm('Importar vai substituir TODOS os dados atuais. Continuar?')) return;
         applyFull(data);
       } else if (data.pedidos) {
-        // Qualquer JSON com pedidos, trata como seed
         applySeed(data);
       } else {
         alert('Formato de arquivo não reconhecido.');
@@ -1766,21 +1941,34 @@ function applySeed(data) {
   }
 
   (data.compras_madeira||[]).forEach(raw => {
-    const dup = state.compras_madeira.find(c =>
-      c.nf === raw.nf && c.fornecedor === raw.fornecedor &&
-      Math.abs((c.volume_m3||0) - (raw.volume_m3||0)) < 0.001);
+    const rec = compraFromMadeira(raw);
+    const dup = state.compras.find(c =>
+      c.categoria === 'madeira' && c.nf === rec.nf && c.fornecedor === rec.fornecedor &&
+      Math.abs((c.quantidade||0) - (rec.quantidade||0)) < 0.001);
     if (dup) return;
-    state.compras_madeira.push({ id: uid(), larguras:'', ...raw });
+    state.compras.push(rec);
     addedMad++;
   });
 
   (data.compras_adesivo||[]).forEach(raw => {
-    const dup = state.compras_adesivo.find(c =>
-      c.nf === raw.nf && c.fornecedor === raw.fornecedor &&
-      Math.abs((c.kg||0) - (raw.kg||0)) < 0.1);
+    const rec = compraFromCola(raw);
+    const dup = state.compras.find(c =>
+      c.categoria === 'cola' && c.nf === rec.nf && c.fornecedor === rec.fornecedor &&
+      Math.abs((c.quantidade||0) - (rec.quantidade||0)) < 0.1);
     if (dup) return;
-    state.compras_adesivo.push({ id: uid(), ...raw });
+    state.compras.push(rec);
     addedAde++;
+  });
+
+  (data.compras||[]).forEach(raw => {
+    const rec = { ...raw, id: raw.id || uid() };
+    const dup = state.compras.find(c =>
+      c.categoria === rec.categoria && c.nf === rec.nf && c.fornecedor === rec.fornecedor &&
+      Math.abs((c.quantidade||0) - (rec.quantidade||0)) < 0.001);
+    if (dup) return;
+    state.compras.push(rec);
+    if (rec.categoria === 'madeira') addedMad++;
+    else if (rec.categoria === 'cola') addedAde++;
   });
 
   (data.pedidos||[]).forEach(raw => {
@@ -1831,14 +2019,126 @@ function applySeed(data) {
   renderTab(currentTab);
 }
 
-function applyFull(data) {
-  state = { ...emptyState(), ...data };
-  // garante arrays
-  ['compras_madeira','compras_adesivo','pedidos','apontamentos_mensais']
+function applyFull(data, silent) {
+  state = { ...emptyState(), ...data, compras: migrateToUnifiedCompras(data) };
+  delete state.compras_madeira;
+  delete state.compras_adesivo;
+  state.version = '2.1.0';
+  ['compras','pedidos','apontamentos_mensais','leituras_tambor']
     .forEach(k => { if (!Array.isArray(state[k])) state[k] = []; });
   saveState();
   renderTab(currentTab);
-  alert('Dados importados com sucesso.');
+  if (!silent) alert('Dados importados com sucesso.');
+}
+
+function getGitHubConfig() {
+  return {
+    owner: document.getElementById('gh-owner').value.trim(),
+    repo: document.getElementById('gh-repo').value.trim(),
+    branch: document.getElementById('gh-branch').value.trim() || 'main',
+    path: document.getElementById('gh-path').value.trim() || 'data/custo-real.json',
+    token: document.getElementById('gh-token').value.trim(),
+    autoload: document.getElementById('gh-autoload').checked
+  };
+}
+
+function saveGitHubConfig() {
+  const cfg = getGitHubConfig();
+  try { localStorage.setItem(GITHUB_SYNC_KEY, JSON.stringify(cfg)); } catch(e) {}
+}
+
+function loadGitHubConfig() {
+  try {
+    const raw = localStorage.getItem(GITHUB_SYNC_KEY);
+    if (!raw) return;
+    const cfg = JSON.parse(raw);
+    if (cfg.owner) document.getElementById('gh-owner').value = cfg.owner;
+    if (cfg.repo) document.getElementById('gh-repo').value = cfg.repo;
+    if (cfg.branch) document.getElementById('gh-branch').value = cfg.branch;
+    if (cfg.path) document.getElementById('gh-path').value = cfg.path;
+    if (cfg.token) document.getElementById('gh-token').value = cfg.token;
+    document.getElementById('gh-autoload').checked = !!cfg.autoload;
+  } catch(e) {}
+}
+
+function setGitHubHint(msg, ok) {
+  const el = document.getElementById('hint-github');
+  el.textContent = msg;
+  el.style.color = ok ? 'var(--green-mid)' : 'var(--red)';
+}
+
+function encodeBase64Unicode(str) {
+  const bytes = new TextEncoder().encode(str);
+  let bin = '';
+  bytes.forEach(b => { bin += String.fromCharCode(b); });
+  return btoa(bin);
+}
+
+function decodeBase64Unicode(str) {
+  const bin = atob(str.replace(/\n/g,''));
+  const bytes = Uint8Array.from(bin, c => c.charCodeAt(0));
+  return new TextDecoder().decode(bytes);
+}
+
+async function githubRequest(cfg, method, body) {
+  const baseUrl = `https://api.github.com/repos/${encodeURIComponent(cfg.owner)}/${encodeURIComponent(cfg.repo)}/contents/${cfg.path.split('/').map(encodeURIComponent).join('/')}`;
+  const url = method === 'GET' ? `${baseUrl}?ref=${encodeURIComponent(cfg.branch)}` : baseUrl;
+  const headers = { 'Accept':'application/vnd.github+json' };
+  if (cfg.token) headers.Authorization = `Bearer ${cfg.token}`;
+  const res = await fetch(url, {
+    method,
+    headers: body ? { ...headers, 'Content-Type':'application/json' } : headers,
+    body: body ? JSON.stringify(body) : undefined
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const detail = data.message ? `: ${data.message}` : '';
+    throw new Error(`GitHub ${res.status}${detail}`);
+  }
+  return data;
+}
+
+async function loadFromGitHub() {
+  const cfg = getGitHubConfig();
+  saveGitHubConfig();
+  if (!cfg.owner || !cfg.repo) { setGitHubHint('Informe owner e repositório.', false); return; }
+  try {
+    setGitHubHint('Carregando...', true);
+    const file = await githubRequest(cfg, 'GET');
+    const data = JSON.parse(decodeBase64Unicode(file.content || ''));
+    applyFull(data, true);
+    setGitHubHint('Dados carregados do GitHub.', true);
+  } catch(err) {
+    setGitHubHint('Erro ao carregar: ' + err.message, false);
+  }
+}
+
+async function saveToGitHub() {
+  const cfg = getGitHubConfig();
+  saveGitHubConfig();
+  if (!cfg.owner || !cfg.repo) { setGitHubHint('Informe owner e repositório.', false); return; }
+  if (!cfg.token) { setGitHubHint('Informe um token para salvar.', false); return; }
+  try {
+    setGitHubHint('Salvando...', true);
+    let sha = null;
+    try {
+      const current = await githubRequest(cfg, 'GET');
+      sha = current.sha;
+    } catch(err) {
+      if (!String(err.message).includes('GitHub 404')) throw err;
+    }
+    const content = encodeBase64Unicode(JSON.stringify({ ...state, lastSaved: new Date().toISOString() }, null, 2));
+    const body = {
+      message: 'Atualiza dados de custo real',
+      content,
+      branch: cfg.branch,
+      ...(sha ? { sha } : {})
+    };
+    await githubRequest(cfg, 'PUT', body);
+    setGitHubHint('Dados salvos no GitHub.', true);
+  } catch(err) {
+    setGitHubHint('Erro ao salvar: ' + err.message, false);
+  }
 }
 
 function resetAll() {
@@ -1862,7 +2162,7 @@ function importNFe(input) {
       const recs = parseNFeXML(ev.target.result, file.name);
       all = all.concat(recs);
       if (++done === files.length) {
-        if (!all.length) alert('Nenhum produto reconhecido como madeira ou adesivo nos arquivos XML.\n\nO sistema procura por palavras como "eucalipto", "madeira", "tlp", "adesivo" no nome do produto.');
+        if (!all.length) alert('Nenhum produto reconhecido como madeira ou cola/adesivo nos arquivos XML.\n\nO sistema procura por palavras como "eucalipto", "madeira", "tlp", "adesivo" no nome do produto.');
         else showImportPreview(all, 'nfe');
       }
     };
@@ -1919,7 +2219,7 @@ function parseNFeXML(xmlStr, filename) {
 function detectTipoNFe(xProd, fornecedor) {
   const t = (xProd + ' ' + fornecedor).toLowerCase();
   if (/eucalipto|madeira|bruto|bruta|pinus|tora|serraria|pranch|serrad/.test(t)) return 'madeira';
-  if (/tlp|adesivo|birka|elastan|kemmsies|pur\b|poliuretano|cola\b/.test(t)) return 'adesivo';
+  if (/tlp|adesivo|birka|elastan|kemmsies|pur\b|poliuretano|cola\b/.test(t)) return 'cola';
   return null;
 }
 
@@ -2043,7 +2343,7 @@ function processSheetRows(rows, tipo) {
       if (!forn && !val) return;
       records.push({ _tipo:'madeira', data_recebimento:data||today(), fornecedor:forn||'(importado)', nf, volume_m3:vol, valor_total:val, larguras:larg });
 
-    } else if (tipo === 'adesivo') {
+    } else if (tipo === 'cola') {
       const data = normDate(colMap(row,['data_recebimento','data recebimento','data','date','entrada']));
       const forn = colMap(row,['fornecedor','supplier','fabricante','birka']);
       const nf   = colMap(row,['nf','nota fiscal','nota']);
@@ -2051,7 +2351,21 @@ function processSheetRows(rows, tipo) {
       const val  = parseNum(colMap(row,['valor_total','valor total','valor','total','preco','preço','price','r$']));
       const prod = colMap(row,['produto','product','tipo','item']);
       if (!forn && !val) return;
-      records.push({ _tipo:'adesivo', data_recebimento:data||today(), fornecedor:forn||'(importado)', nf, produto:prod||'TLP_40', kg, valor_total:val });
+      records.push({ _tipo:'cola', data_recebimento:data||today(), fornecedor:forn||'(importado)', nf, produto:prod||'TLP_40', kg, valor_total:val });
+
+    } else if (CATEGORIAS[tipo]) {
+      const data = normDate(colMap(row,['data_recebimento','data recebimento','data entrada','data','date','entrada']));
+      const forn = colMap(row,['fornecedor','supplier','prestador','origem','empresa']);
+      const nf   = colMap(row,['nf','nota fiscal','nota','nf numero','numero nf','invoice']);
+      const desc = colMap(row,['descricao','descrição','produto','product','tipo','item','servico','serviço']);
+      const qtd  = parseNum(colMap(row,['quantidade','qty','qtd','kwh','kWh','base','rateio','volume','valor_base'])) || 1;
+      const val  = parseNum(colMap(row,['valor_total','valor total','valor','total','preco','preço','price','r$','vl total']));
+      if (!forn && !val) return;
+      records.push({
+        _tipo: tipo, data:data||today(), fornecedor:forn||'(importado)', nf,
+        descricao:desc||CATEGORIAS[tipo].label, quantidade:qtd,
+        unidade:categoriaUnidade(tipo), valor_total:val, pedido_vinculado:null
+      });
 
     } else if (tipo === 'pedidos') {
       const orc = colMap(row,['orcamento','orçamento','numero','nro','no','pedido','orcamento numero','orç']);
@@ -2109,7 +2423,7 @@ function showImportPreview(records, origem) {
   pendingImports = records;
   const tipo = records[0]._tipo;
   const total = records.length;
-  const tipoLabel = { madeira:'compras de madeira', adesivo:'compras de adesivo', pedido:'pedidos' }[tipo] || 'registros';
+  const tipoLabel = { madeira:'compras de madeira', cola:'compras de cola/adesivo', pedido:'pedidos' }[tipo] || 'registros';
 
   document.getElementById('imp-modal-title').textContent = `Pré-visualização — ${total} ${tipoLabel}`;
   document.getElementById('imp-modal-confirm').textContent = `Importar ${total} registro(s)`;
@@ -2125,7 +2439,7 @@ function showImportPreview(records, origem) {
     ]);
     if (records.some(r => !r.volume_m3)) warns = '<div class="alert alert-warn" style="margin-bottom:.7rem">⚠ Registros com m³ = 0 serão importados — corrija o volume depois na aba Madeira.</div>';
 
-  } else if (tipo === 'adesivo') {
+  } else if (tipo === 'cola') {
     cols = ['Data','Fornecedor','NF','Produto','kg','Valor Total'];
     rows = records.map(r => [
       fmtDate(r.data_recebimento), r.fornecedor, r.nf||'—', r.produto,
@@ -2133,6 +2447,15 @@ function showImportPreview(records, origem) {
       brl(r.valor_total)
     ]);
     if (records.some(r => !r.kg)) warns = '<div class="alert alert-warn" style="margin-bottom:.7rem">⚠ Registros com kg = 0 serão importados — corrija depois na aba Adesivo.</div>';
+
+  } else if (CATEGORIAS[tipo]) {
+    const cat = CATEGORIAS[tipo];
+    cols = ['Data','Categoria','Fornecedor','NF','Descrição','Qtd/Base','Valor Total'];
+    rows = records.map(r => [
+      fmtDate(r.data), cat.label, r.fornecedor, r.nf||'—', r.descricao||'—',
+      r.quantidade ? `${Number(r.quantidade).toLocaleString('pt-BR',{maximumFractionDigits:3})} ${r.unidade}` : '—',
+      brl(r.valor_total)
+    ]);
 
   } else if (tipo === 'item_pedido') {
     // Agrupar itens por pedido
@@ -2230,9 +2553,11 @@ function confirmImport() {
     rec.id = uid();
 
     if (tipo === 'madeira') {
-      state.compras_madeira.push(rec); added++;
-    } else if (tipo === 'adesivo') {
-      state.compras_adesivo.push(rec); added++;
+      state.compras.push(compraFromMadeira(rec)); added++;
+    } else if (tipo === 'cola') {
+      state.compras.push(compraFromCola(rec)); added++;
+    } else if (CATEGORIAS[tipo]) {
+      state.compras.push(rec); added++;
     } else if (tipo === 'pedido') {
       const dup = state.pedidos.find(p => p.orcamento === rec.orcamento && p.cliente === rec.cliente);
       if (dup) { skipped++; return; }
@@ -2430,10 +2755,16 @@ function previewSeed2026() {
 // ═══════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => {
   loadState();
+  loadGitHubConfig();
   // defaults para campos de data
-  document.getElementById('cm-data').value = today();
-  document.getElementById('ca-data').value = today();
+  document.getElementById('cc-data').value = today();
+  document.getElementById('tb-data').value = today();
+  updatePedidoOptions();
+  updateCompraForm();
+  document.getElementById('cc-qty').addEventListener('input', updateCompraUnit);
+  document.getElementById('cc-valor').addEventListener('input', updateCompraUnit);
   renderPainel();
+  if (document.getElementById('gh-autoload').checked) loadFromGitHub();
 });
 </script>
 </body>
