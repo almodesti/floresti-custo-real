@@ -566,6 +566,36 @@ tbody tr:hover { background: #f8f7f5; cursor: pointer; }
     </div>
   </div>
 
+  <!-- Database Sync -->
+  <div class="card" style="border-top-color:var(--primary)">
+    <div class="card-head">
+      <span class="card-title">Banco de dados remoto</span>
+      <span style="font-size:.72rem; color:var(--muted)">Supabase/Postgres para vários locais</span>
+    </div>
+    <div class="card-body">
+      <div class="form-grid">
+        <div class="fg" style="grid-column:1/-1"><label>Supabase URL</label><input type="url" id="db-url" placeholder="https://xxxx.supabase.co"></div>
+        <div class="fg" style="grid-column:1/-1"><label>Anon public key</label><input type="password" id="db-anon" placeholder="eyJ..."></div>
+        <div class="fg" style="grid-column:1/-1"><label>Token compartilhado do app</label><input type="password" id="db-token" placeholder="Mesmo token configurado no SQL"></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" onclick="saveToDatabase()">Salvar no Banco</button>
+        <button class="btn btn-secondary" onclick="loadFromDatabase()">Carregar do Banco</button>
+        <label style="font-size:.78rem; color:var(--muted); display:flex; align-items:center; gap:.35rem">
+          <input type="checkbox" id="db-autoload" onchange="saveDatabaseConfig()"> carregar ao abrir
+        </label>
+        <label style="font-size:.78rem; color:var(--muted); display:flex; align-items:center; gap:.35rem">
+          <input type="checkbox" id="db-autosave" onchange="saveDatabaseConfig()"> salvar automático
+        </label>
+        <span class="form-hint" id="hint-db"></span>
+      </div>
+      <p style="font-size:.78rem; color:var(--muted); margin-top:.7rem; line-height:1.5">
+        Execute o SQL em <code>database/supabase.sql</code> no Supabase. Depois preencha URL, anon key e token.
+        O token fica salvo só neste navegador.
+      </p>
+    </div>
+  </div>
+
   <!-- GitHub Sync -->
   <div class="card" style="border-top-color:var(--green-mid)">
     <div class="card-head">
@@ -689,8 +719,12 @@ function comprasCat(cat, ateDt) {
 
 const STORAGE_KEY = 'floresti_custo_real';
 const GITHUB_SYNC_KEY = 'floresti_github_sync';
+const DATABASE_SYNC_KEY = 'floresti_database_sync';
+let databaseSaveTimer = null;
+let databaseLoadInProgress = false;
 function saveState() {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) { /* quota or file:// */ }
+  scheduleDatabaseSave();
 }
 function compraFromMadeira(c) {
   return {
@@ -2031,6 +2065,107 @@ function applyFull(data, silent) {
   if (!silent) alert('Dados importados com sucesso.');
 }
 
+function getDatabaseConfig() {
+  return {
+    url: document.getElementById('db-url').value.trim().replace(/\/+$/,''),
+    anon: document.getElementById('db-anon').value.trim(),
+    token: document.getElementById('db-token').value.trim(),
+    autoload: document.getElementById('db-autoload').checked,
+    autosave: document.getElementById('db-autosave').checked
+  };
+}
+
+function saveDatabaseConfig() {
+  const cfg = getDatabaseConfig();
+  try { localStorage.setItem(DATABASE_SYNC_KEY, JSON.stringify(cfg)); } catch(e) {}
+}
+
+function loadDatabaseConfig() {
+  try {
+    const raw = localStorage.getItem(DATABASE_SYNC_KEY);
+    if (!raw) return;
+    const cfg = JSON.parse(raw);
+    if (cfg.url) document.getElementById('db-url').value = cfg.url;
+    if (cfg.anon) document.getElementById('db-anon').value = cfg.anon;
+    if (cfg.token) document.getElementById('db-token').value = cfg.token;
+    document.getElementById('db-autoload').checked = !!cfg.autoload;
+    document.getElementById('db-autosave').checked = !!cfg.autosave;
+  } catch(e) {}
+}
+
+function setDatabaseHint(msg, ok) {
+  const el = document.getElementById('hint-db');
+  el.textContent = msg;
+  el.style.color = ok ? 'var(--green-mid)' : 'var(--red)';
+}
+
+async function supabaseRpc(fn, payload) {
+  const cfg = getDatabaseConfig();
+  saveDatabaseConfig();
+  if (!cfg.url || !cfg.anon || !cfg.token) throw new Error('Configure URL, anon key e token.');
+  const res = await fetch(`${cfg.url}/rest/v1/rpc/${fn}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': cfg.anon,
+      'Authorization': `Bearer ${cfg.anon}`
+    },
+    body: JSON.stringify(payload)
+  });
+  const data = await res.json().catch(() => null);
+  if (!res.ok) {
+    const msg = data?.message || data?.hint || res.statusText || `HTTP ${res.status}`;
+    throw new Error(msg);
+  }
+  return data;
+}
+
+async function loadFromDatabase() {
+  try {
+    databaseLoadInProgress = true;
+    setDatabaseHint('Carregando...', true);
+    const cfg = getDatabaseConfig();
+    const data = await supabaseRpc('get_custo_real_state', { p_token: cfg.token });
+    applyFull(data || emptyState(), true);
+    setDatabaseHint('Dados carregados do banco.', true);
+  } catch(err) {
+    setDatabaseHint('Erro ao carregar: ' + err.message, false);
+  } finally {
+    databaseLoadInProgress = false;
+  }
+}
+
+async function saveToDatabase(silent) {
+  try {
+    if (!silent) setDatabaseHint('Salvando...', true);
+    const cfg = getDatabaseConfig();
+    await supabaseRpc('save_custo_real_state', {
+      p_token: cfg.token,
+      p_data: { ...state, lastSaved: new Date().toISOString() }
+    });
+    setDatabaseHint('Dados salvos no banco.', true);
+  } catch(err) {
+    setDatabaseHint('Erro ao salvar: ' + err.message, false);
+  }
+}
+
+function scheduleDatabaseSave() {
+  if (databaseLoadInProgress) return;
+  const cfg = getDatabaseConfigSafe();
+  if (!cfg.autosave || !cfg.url || !cfg.anon || !cfg.token) return;
+  clearTimeout(databaseSaveTimer);
+  databaseSaveTimer = setTimeout(() => saveToDatabase(true), 1200);
+}
+
+function getDatabaseConfigSafe() {
+  try {
+    if (!document.getElementById('db-url')) return {};
+    return getDatabaseConfig();
+  } catch(e) {
+    return {};
+  }
+}
+
 function getGitHubConfig() {
   return {
     owner: document.getElementById('gh-owner').value.trim(),
@@ -2755,6 +2890,7 @@ function previewSeed2026() {
 // ═══════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => {
   loadState();
+  loadDatabaseConfig();
   loadGitHubConfig();
   // defaults para campos de data
   document.getElementById('cc-data').value = today();
@@ -2764,6 +2900,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('cc-qty').addEventListener('input', updateCompraUnit);
   document.getElementById('cc-valor').addEventListener('input', updateCompraUnit);
   renderPainel();
+  if (document.getElementById('db-autoload').checked) loadFromDatabase();
   if (document.getElementById('gh-autoload').checked) loadFromGitHub();
 });
 </script>

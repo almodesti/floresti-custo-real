@@ -29,6 +29,11 @@ O sistema salva localmente no navegador e também pode sincronizar um JSON no Gi
 
 - **Exportar**: botão no canto superior direito → salva um arquivo `.json`
 - **Importar**: mesmo botão → restaura os dados do `.json` salvo
+- **Banco remoto**: aba **Dados** → **Banco de dados remoto**
+  - recomendado para usar em vários computadores/celulares
+  - execute `database/supabase.sql` no Supabase
+  - preencha Supabase URL, anon key e token compartilhado
+  - marque **salvar automático** para gravar cada alteração no banco
 - **GitHub**: aba **Dados** → **Salvar dados no GitHub**
   - arquivo padrão: `data/custo-real.json`
   - requer um token do GitHub com permissão `Contents: Read and write`
