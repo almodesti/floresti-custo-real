@@ -24,6 +24,9 @@ a { color: inherit; }
 .hdr-logo { font-family: var(--font-head); font-weight: 300; font-size: 1.1rem; letter-spacing: .05em; }
 .hdr-sub { font-size: .7rem; font-weight: 500; letter-spacing: .15em; text-transform: uppercase; color: var(--accent); }
 .hdr-actions { display: flex; gap: .5rem; }
+.sync-badge { font-size: .68rem; padding: .15rem .5rem; border-radius: 99px; background: rgba(255,255,255,.12); color: rgba(255,255,255,.7); letter-spacing: .03em; transition: background .3s, color .3s; }
+.sync-badge.ok  { background: rgba(15,110,86,.4); color: #7ef5c8; }
+.sync-badge.err { background: rgba(192,57,43,.4); color: #ffa9a0; }
 
 /* ── NAV TABS ── */
 .nav { background: var(--white); border-bottom: 1px solid var(--border); display: flex; overflow-x: auto; scrollbar-width: none; }
@@ -169,6 +172,7 @@ tbody tr:hover { background: #f8f7f5; cursor: pointer; }
     <span class="hdr-sub">Custo Real</span>
   </div>
   <div class="hdr-actions">
+    <span class="sync-badge" id="sync-badge">sincronizando…</span>
     <button class="btn btn-sm btn-outline" onclick="exportJSON()">⬇ Exportar</button>
     <label class="btn btn-sm btn-outline" style="cursor:pointer">⬆ Importar<input type="file" accept=".json" style="display:none" onchange="importJSON(this)"></label>
   </div>
@@ -566,30 +570,6 @@ tbody tr:hover { background: #f8f7f5; cursor: pointer; }
     </div>
   </div>
 
-  <!-- Database Sync -->
-  <div class="card" style="border-top-color:var(--primary)">
-    <div class="card-head">
-      <span class="card-title">Banco de dados remoto</span>
-      <span style="font-size:.72rem; color:var(--muted)">Supabase/Postgres para vários locais</span>
-    </div>
-    <div class="card-body">
-      <div class="form-grid">
-        <div class="fg" style="grid-column:1/-1"><label>Token de acesso</label><input type="password" id="db-token" placeholder="Token compartilhado do app"></div>
-      </div>
-      <div class="form-actions">
-        <button class="btn btn-primary" onclick="saveToDatabase()">Salvar no Banco</button>
-        <button class="btn btn-secondary" onclick="loadFromDatabase()">Carregar do Banco</button>
-        <label style="font-size:.78rem; color:var(--muted); display:flex; align-items:center; gap:.35rem">
-          <input type="checkbox" id="db-autoload" onchange="saveDatabaseConfig()"> carregar ao abrir
-        </label>
-        <span class="form-hint" id="hint-db"></span>
-      </div>
-      <p style="font-size:.78rem; color:var(--muted); margin-top:.7rem; line-height:1.5">
-        Informe o token de acesso uma vez. Os dados são salvos automaticamente a cada alteração.
-      </p>
-    </div>
-  </div>
-
   <!-- GitHub Sync -->
   <div class="card" style="border-top-color:var(--green-mid)">
     <div class="card-head">
@@ -716,6 +696,7 @@ const GITHUB_SYNC_KEY = 'floresti_github_sync';
 const DATABASE_SYNC_KEY = 'floresti_database_sync';
 const SUPABASE_URL = 'https://qykjhwixfiimbfrcjztt.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF5a2pod2l4ZmlpbWJmcmNqenR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4MTgyMjMsImV4cCI6MjA4ODM5NDIyM30.HcvJBEgO3ZrOFSTmR4qM3zfCTjGasMM2pxCeTq3SCyM';
+const SUPABASE_TOKEN = 'HHaNRdBXDPCPB5dHLC7-mh7fmP8P1Ns-aRM0Wwkyi1k';
 let databaseSaveTimer = null;
 let databaseLoadInProgress = false;
 function saveState() {
@@ -2062,40 +2043,23 @@ function applyFull(data, silent) {
 }
 
 function getDatabaseConfig() {
-  return {
-    url: SUPABASE_URL,
-    anon: SUPABASE_ANON,
-    token: document.getElementById('db-token').value.trim(),
-    autoload: document.getElementById('db-autoload').checked,
-    autosave: true
-  };
+  return { url: SUPABASE_URL, anon: SUPABASE_ANON, token: SUPABASE_TOKEN, autoload: true, autosave: true };
 }
 
-function saveDatabaseConfig() {
-  const cfg = getDatabaseConfig();
-  try { localStorage.setItem(DATABASE_SYNC_KEY, JSON.stringify({ token: cfg.token, autoload: cfg.autoload })); } catch(e) {}
-}
-
-function loadDatabaseConfig() {
-  try {
-    const raw = localStorage.getItem(DATABASE_SYNC_KEY);
-    if (!raw) return;
-    const cfg = JSON.parse(raw);
-    if (cfg.token) document.getElementById('db-token').value = cfg.token;
-    document.getElementById('db-autoload').checked = !!cfg.autoload;
-  } catch(e) {}
-}
+function saveDatabaseConfig() {}
+function loadDatabaseConfig() {}
 
 function setDatabaseHint(msg, ok) {
-  const el = document.getElementById('hint-db');
+  const el = document.getElementById('sync-badge');
+  if (!el) return;
   el.textContent = msg;
-  el.style.color = ok ? 'var(--green-mid)' : 'var(--red)';
+  el.className = 'sync-badge' + (ok ? ' ok' : ' err');
 }
 
 async function supabaseRpc(fn, payload) {
   const cfg = getDatabaseConfig();
   saveDatabaseConfig();
-  if (!cfg.token) throw new Error('Informe o token de acesso.');
+  if (!cfg.token) throw new Error('Token não configurado.');
   const res = await fetch(`${cfg.url}/rest/v1/rpc/${fn}`, {
     method: 'POST',
     headers: {
@@ -2145,18 +2109,13 @@ async function saveToDatabase(silent) {
 function scheduleDatabaseSave() {
   if (databaseLoadInProgress) return;
   const cfg = getDatabaseConfigSafe();
-  if (!cfg.token) return;
+  if (!cfg.token) return; // sempre tem token
   clearTimeout(databaseSaveTimer);
   databaseSaveTimer = setTimeout(() => saveToDatabase(true), 1200);
 }
 
 function getDatabaseConfigSafe() {
-  try {
-    if (!document.getElementById('db-url')) return {};
-    return getDatabaseConfig();
-  } catch(e) {
-    return {};
-  }
+  return getDatabaseConfig();
 }
 
 function getGitHubConfig() {
@@ -2883,7 +2842,6 @@ function previewSeed2026() {
 // ═══════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => {
   loadState();
-  loadDatabaseConfig();
   loadGitHubConfig();
   // defaults para campos de data
   document.getElementById('cc-data').value = today();
@@ -2893,7 +2851,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('cc-qty').addEventListener('input', updateCompraUnit);
   document.getElementById('cc-valor').addEventListener('input', updateCompraUnit);
   renderPainel();
-  if (document.getElementById('db-autoload').checked) loadFromDatabase();
+  loadFromDatabase();
   if (document.getElementById('gh-autoload').checked) loadFromGitHub();
 });
 </script>
