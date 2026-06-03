@@ -570,8 +570,38 @@ tbody tr:hover { background: #f8f7f5; cursor: pointer; }
     </div>
   </div>
 
-  <!-- GitHub Sync -->
-  <div class="card" style="border-top-color:var(--green-mid)">
+  <!-- Database Sync (configuração técnica oculta; usuário final usa sincronização automática) -->
+  <div class="card" style="border-top-color:var(--primary); display:none">
+    <div class="card-head">
+      <span class="card-title">Banco de dados remoto</span>
+      <span style="font-size:.72rem; color:var(--muted)">Supabase/Postgres para vários locais</span>
+    </div>
+    <div class="card-body">
+      <div class="form-grid">
+        <div class="fg" style="grid-column:1/-1"><label>Supabase URL</label><input type="url" id="db-url" placeholder="https://xxxx.supabase.co"></div>
+        <div class="fg" style="grid-column:1/-1"><label>Anon public key</label><input type="password" id="db-anon" placeholder="eyJ..."></div>
+        <div class="fg" style="grid-column:1/-1"><label>Token compartilhado do app</label><input type="password" id="db-token" placeholder="Mesmo token configurado no SQL"></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" onclick="saveToDatabase()">Salvar no Banco</button>
+        <button class="btn btn-secondary" onclick="loadFromDatabase()">Carregar do Banco</button>
+        <label style="font-size:.78rem; color:var(--muted); display:flex; align-items:center; gap:.35rem">
+          <input type="checkbox" id="db-autoload" onchange="saveDatabaseConfig()"> carregar ao abrir
+        </label>
+        <label style="font-size:.78rem; color:var(--muted); display:flex; align-items:center; gap:.35rem">
+          <input type="checkbox" id="db-autosave" onchange="saveDatabaseConfig()"> salvar automático
+        </label>
+        <span class="form-hint" id="hint-db"></span>
+      </div>
+      <p style="font-size:.78rem; color:var(--muted); margin-top:.7rem; line-height:1.5">
+        Execute o SQL em <code>database/supabase.sql</code> no Supabase. Depois preencha URL, anon key e token.
+        O token fica salvo só neste navegador.
+      </p>
+    </div>
+  </div>
+
+  <!-- GitHub Sync (fallback técnico oculto; uso principal é banco remoto/API) -->
+  <div class="card" style="border-top-color:var(--green-mid); display:none">
     <div class="card-head">
       <span class="card-title">Salvar dados no GitHub</span>
       <span style="font-size:.72rem; color:var(--muted)">Usa um arquivo JSON no repositório</span>
@@ -2852,7 +2882,6 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('cc-valor').addEventListener('input', updateCompraUnit);
   renderPainel();
   loadFromDatabase();
-  if (document.getElementById('gh-autoload').checked) loadFromGitHub();
 });
 </script>
 </body>

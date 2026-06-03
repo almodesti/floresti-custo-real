@@ -34,9 +34,7 @@ O sistema salva localmente no navegador e também pode sincronizar um JSON no Gi
   - execute `database/supabase.sql` no Supabase
   - preencha Supabase URL, anon key e token compartilhado
   - marque **salvar automático** para gravar cada alteração no banco
-- **GitHub**: aba **Dados** → **Salvar dados no GitHub**
-  - arquivo padrão: `data/custo-real.json`
-  - requer um token do GitHub com permissão `Contents: Read and write`
+- **GitHub**: usado para hospedar o app via GitHub Pages. A gravação de dados pelo usuário final deve passar pelo banco remoto/API, não por token GitHub no navegador.
 
 ## Deploy
 
