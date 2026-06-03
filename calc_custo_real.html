@@ -574,9 +574,7 @@ tbody tr:hover { background: #f8f7f5; cursor: pointer; }
     </div>
     <div class="card-body">
       <div class="form-grid">
-        <div class="fg" style="grid-column:1/-1"><label>Supabase URL</label><input type="url" id="db-url" placeholder="https://xxxx.supabase.co"></div>
-        <div class="fg" style="grid-column:1/-1"><label>Anon public key</label><input type="password" id="db-anon" placeholder="eyJ..."></div>
-        <div class="fg" style="grid-column:1/-1"><label>Token compartilhado do app</label><input type="password" id="db-token" placeholder="Mesmo token configurado no SQL"></div>
+        <div class="fg" style="grid-column:1/-1"><label>Token de acesso</label><input type="password" id="db-token" placeholder="Token compartilhado do app"></div>
       </div>
       <div class="form-actions">
         <button class="btn btn-primary" onclick="saveToDatabase()">Salvar no Banco</button>
@@ -584,14 +582,10 @@ tbody tr:hover { background: #f8f7f5; cursor: pointer; }
         <label style="font-size:.78rem; color:var(--muted); display:flex; align-items:center; gap:.35rem">
           <input type="checkbox" id="db-autoload" onchange="saveDatabaseConfig()"> carregar ao abrir
         </label>
-        <label style="font-size:.78rem; color:var(--muted); display:flex; align-items:center; gap:.35rem">
-          <input type="checkbox" id="db-autosave" onchange="saveDatabaseConfig()"> salvar automático
-        </label>
         <span class="form-hint" id="hint-db"></span>
       </div>
       <p style="font-size:.78rem; color:var(--muted); margin-top:.7rem; line-height:1.5">
-        Execute o SQL em <code>database/supabase.sql</code> no Supabase. Depois preencha URL, anon key e token.
-        O token fica salvo só neste navegador.
+        Informe o token de acesso uma vez. Os dados são salvos automaticamente a cada alteração.
       </p>
     </div>
   </div>
@@ -720,6 +714,8 @@ function comprasCat(cat, ateDt) {
 const STORAGE_KEY = 'floresti_custo_real';
 const GITHUB_SYNC_KEY = 'floresti_github_sync';
 const DATABASE_SYNC_KEY = 'floresti_database_sync';
+const SUPABASE_URL = 'https://qykjhwixfiimbfrcjztt.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF5a2pod2l4ZmlpbWJmcmNqenR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4MTgyMjMsImV4cCI6MjA4ODM5NDIyM30.HcvJBEgO3ZrOFSTmR4qM3zfCTjGasMM2pxCeTq3SCyM';
 let databaseSaveTimer = null;
 let databaseLoadInProgress = false;
 function saveState() {
@@ -2067,17 +2063,17 @@ function applyFull(data, silent) {
 
 function getDatabaseConfig() {
   return {
-    url: document.getElementById('db-url').value.trim().replace(/\/+$/,''),
-    anon: document.getElementById('db-anon').value.trim(),
+    url: SUPABASE_URL,
+    anon: SUPABASE_ANON,
     token: document.getElementById('db-token').value.trim(),
     autoload: document.getElementById('db-autoload').checked,
-    autosave: document.getElementById('db-autosave').checked
+    autosave: true
   };
 }
 
 function saveDatabaseConfig() {
   const cfg = getDatabaseConfig();
-  try { localStorage.setItem(DATABASE_SYNC_KEY, JSON.stringify(cfg)); } catch(e) {}
+  try { localStorage.setItem(DATABASE_SYNC_KEY, JSON.stringify({ token: cfg.token, autoload: cfg.autoload })); } catch(e) {}
 }
 
 function loadDatabaseConfig() {
@@ -2085,11 +2081,8 @@ function loadDatabaseConfig() {
     const raw = localStorage.getItem(DATABASE_SYNC_KEY);
     if (!raw) return;
     const cfg = JSON.parse(raw);
-    if (cfg.url) document.getElementById('db-url').value = cfg.url;
-    if (cfg.anon) document.getElementById('db-anon').value = cfg.anon;
     if (cfg.token) document.getElementById('db-token').value = cfg.token;
     document.getElementById('db-autoload').checked = !!cfg.autoload;
-    document.getElementById('db-autosave').checked = !!cfg.autosave;
   } catch(e) {}
 }
 
@@ -2102,7 +2095,7 @@ function setDatabaseHint(msg, ok) {
 async function supabaseRpc(fn, payload) {
   const cfg = getDatabaseConfig();
   saveDatabaseConfig();
-  if (!cfg.url || !cfg.anon || !cfg.token) throw new Error('Configure URL, anon key e token.');
+  if (!cfg.token) throw new Error('Informe o token de acesso.');
   const res = await fetch(`${cfg.url}/rest/v1/rpc/${fn}`, {
     method: 'POST',
     headers: {
@@ -2152,7 +2145,7 @@ async function saveToDatabase(silent) {
 function scheduleDatabaseSave() {
   if (databaseLoadInProgress) return;
   const cfg = getDatabaseConfigSafe();
-  if (!cfg.autosave || !cfg.url || !cfg.anon || !cfg.token) return;
+  if (!cfg.token) return;
   clearTimeout(databaseSaveTimer);
   databaseSaveTimer = setTimeout(() => saveToDatabase(true), 1200);
 }
