@@ -29,17 +29,22 @@ O sistema salva localmente no navegador e também pode sincronizar um JSON no Gi
 
 - **Exportar**: botão no canto superior direito → salva um arquivo `.json`
 - **Importar**: mesmo botão → restaura os dados do `.json` salvo
-- **Banco remoto**: aba **Dados** → **Banco de dados remoto**
-  - recomendado para usar em vários computadores/celulares
+- **Banco remoto**: o app chama `/api/state`, servido pelo mesmo Cloudflare Worker.
   - execute `database/supabase.sql` no Supabase
-  - preencha Supabase URL, anon key e token compartilhado
-  - marque **salvar automático** para gravar cada alteração no banco
+  - configure os secrets `SUPABASE_URL`, `SUPABASE_ANON` e `SUPABASE_TOKEN` no Worker
+  - o usuário final não precisa preencher token ou configuração
 - **GitHub**: usado para hospedar o app via GitHub Pages. A gravação de dados pelo usuário final deve passar pelo banco remoto/API, não por token GitHub no navegador.
 
 ## Deploy
 
-O deploy é feito por GitHub Pages via GitHub Actions (`.github/workflows/pages.yml`).
-Após o push na branch `main`, a página deve ficar disponível em:
+O deploy público principal é o Cloudflare Worker `floresti-custo-real`, que serve os arquivos estáticos e a API segura.
+O GitHub Pages permanece como espelho estático via GitHub Actions (`.github/workflows/pages.yml`).
+
+Cloudflare Worker:
+
+https://floresti-custo-real.modesti.workers.dev/
+
+GitHub Pages:
 
 https://almodesti.github.io/floresti-custo-real/
 

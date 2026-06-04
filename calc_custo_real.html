@@ -724,9 +724,9 @@ function comprasCat(cat, ateDt) {
 const STORAGE_KEY = 'floresti_custo_real';
 const GITHUB_SYNC_KEY = 'floresti_github_sync';
 const DATABASE_SYNC_KEY = 'floresti_database_sync';
-const SUPABASE_URL = 'https://qykjhwixfiimbfrcjztt.supabase.co';
-const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF5a2pod2l4ZmlpbWJmcmNqenR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4MTgyMjMsImV4cCI6MjA4ODM5NDIyM30.HcvJBEgO3ZrOFSTmR4qM3zfCTjGasMM2pxCeTq3SCyM';
-const SUPABASE_TOKEN = 'HHaNRdBXDPCPB5dHLC7-mh7fmP8P1Ns-aRM0Wwkyi1k';
+const API_BASE = location.hostname.endsWith('github.io')
+  ? 'https://floresti-custo-real.modesti.workers.dev'
+  : '';
 let databaseSaveTimer = null;
 let databaseLoadInProgress = false;
 function saveState() {
@@ -2073,7 +2073,7 @@ function applyFull(data, silent) {
 }
 
 function getDatabaseConfig() {
-  return { url: SUPABASE_URL, anon: SUPABASE_ANON, token: SUPABASE_TOKEN, autoload: true, autosave: true };
+  return { autoload: true, autosave: true };
 }
 
 function saveDatabaseConfig() {}
@@ -2087,21 +2087,16 @@ function setDatabaseHint(msg, ok) {
 }
 
 async function supabaseRpc(fn, payload) {
-  const cfg = getDatabaseConfig();
   saveDatabaseConfig();
-  if (!cfg.token) throw new Error('Token não configurado.');
-  const res = await fetch(`${cfg.url}/rest/v1/rpc/${fn}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'apikey': cfg.anon,
-      'Authorization': `Bearer ${cfg.anon}`
-    },
-    body: JSON.stringify(payload)
+  const isGet = fn === 'get_custo_real_state';
+  const res = await fetch(`${API_BASE}/api/state`, {
+    method: isGet ? 'GET' : 'PUT',
+    headers: isGet ? {} : { 'Content-Type': 'application/json' },
+    body: isGet ? undefined : JSON.stringify(payload.p_data)
   });
   const data = await res.json().catch(() => null);
   if (!res.ok) {
-    const msg = data?.message || data?.hint || res.statusText || `HTTP ${res.status}`;
+    const msg = data?.error || data?.message || data?.hint || res.statusText || `HTTP ${res.status}`;
     throw new Error(msg);
   }
   return data;
@@ -2138,8 +2133,6 @@ async function saveToDatabase(silent) {
 
 function scheduleDatabaseSave() {
   if (databaseLoadInProgress) return;
-  const cfg = getDatabaseConfigSafe();
-  if (!cfg.token) return; // sempre tem token
   clearTimeout(databaseSaveTimer);
   databaseSaveTimer = setTimeout(() => saveToDatabase(true), 1200);
 }

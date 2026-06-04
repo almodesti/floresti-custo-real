@@ -1,0 +1,12 @@
+.git
+.github
+.vscode
+.wrangler
+node_modules
+src
+database
+*.md
+package.json
+package-lock.json
+wrangler.jsonc
+.assetsignore
