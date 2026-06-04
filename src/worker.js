@@ -68,8 +68,12 @@ async function handleApi(request, env) {
 
 export default {
   async fetch(request, env) {
-    const url = new URL(request.url);
-    if (url.pathname.startsWith("/api/")) return handleApi(request, env);
-    return env.ASSETS.fetch(request);
+    try {
+      const url = new URL(request.url);
+      if (url.pathname.startsWith("/api/")) return handleApi(request, env);
+      return env.ASSETS.fetch(request);
+    } catch (err) {
+      return json({ error: err.message || "Internal error" }, 500);
+    }
   }
 };
