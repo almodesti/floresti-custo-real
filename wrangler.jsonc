@@ -6,7 +6,7 @@
   "vars": {
     "SUPABASE_URL": "https://qykjhwixfiimbfrcjztt.supabase.co",
     "SUPABASE_ANON": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF5a2pod2l4ZmlpbWJmcmNqenR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4MTgyMjMsImV4cCI6MjA4ODM5NDIyM30.HcvJBEgO3ZrOFSTmR4qM3zfCTjGasMM2pxCeTq3SCyM",
-    "SUPABASE_TOKEN": "troque-este-token"
+    "SUPABASE_TOKEN": "+lpMk/cCij1sopOZqfae7zDiv0VFxf+X5CDQIEJHWzo="
   },
   "assets": {
     "directory": "./",
