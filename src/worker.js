@@ -47,7 +47,7 @@ async function handleApi(request, env) {
   if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders });
 
   if (url.pathname === "/api/health" && request.method === "GET") {
-    return json({ ok: true });
+    return json({ ok: true, version: "2026-06-04.2" });
   }
 
   if (url.pathname === "/api/state" && request.method === "GET") {
@@ -70,8 +70,8 @@ export default {
   async fetch(request, env) {
     try {
       const url = new URL(request.url);
-      if (url.pathname.startsWith("/api/")) return handleApi(request, env);
-      return env.ASSETS.fetch(request);
+      if (url.pathname.startsWith("/api/")) return await handleApi(request, env);
+      return await env.ASSETS.fetch(request);
     } catch (err) {
       return json({ error: err.message || "Internal error" }, 500);
     }
