@@ -50,6 +50,14 @@ async function handleApi(request, env) {
     return json({ ok: true, version: "2026-06-04.2" });
   }
 
+  if (url.pathname === "/api/token-hash" && request.method === "GET") {
+    requiredEnv(env);
+    const data = new TextEncoder().encode(env.SUPABASE_TOKEN);
+    const digest = await crypto.subtle.digest("SHA-256", data);
+    const hash = [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+    return json({ hash });
+  }
+
   if (url.pathname === "/api/state" && request.method === "GET") {
     return supabaseRpc(env, "get_custo_real_state", { p_token: env.SUPABASE_TOKEN });
   }
