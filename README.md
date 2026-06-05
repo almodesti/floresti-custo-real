@@ -1,13 +1,13 @@
 # FLORESTi — Custo Real
 
-Calculadora de custo real da fábrica MLC Eucalipto. Sistema single-file HTML — abre direto no browser, sem instalação.
+Calculadora de custo real da fábrica MLC Eucalipto. O deploy principal roda em Cloudflare Worker, com API para salvar/carregar os dados no Supabase.
 
 ## Como usar
 
-1. Baixe `calc_custo_real.html`
-2. Abra no browser (Chrome ou Safari)
-3. Aba **Dados** → **Carregar dados 2026**
-4. Vá para **Painel** e selecione o período
+1. Abra `https://floresti-custo-real.modesti.workers.dev/`
+2. Aguarde o status **Dados carregados do banco**
+3. Use as abas **Painel**, **Compras**, **Pedidos**, **Estoque**, **Margens** e **Balanço**
+4. As alterações são salvas automaticamente no banco
 
 ## O que o sistema calcula
 
@@ -25,7 +25,7 @@ Calculadora de custo real da fábrica MLC Eucalipto. Sistema single-file HTML �
 
 ## Como salvar os dados
 
-O sistema salva localmente no navegador e também pode sincronizar um JSON no GitHub.
+O sistema salva localmente no navegador e sincroniza automaticamente no banco remoto via Worker API.
 
 - **Exportar**: botão no canto superior direito → salva um arquivo `.json`
 - **Importar**: mesmo botão → restaura os dados do `.json` salvo
@@ -33,7 +33,7 @@ O sistema salva localmente no navegador e também pode sincronizar um JSON no Gi
   - execute `database/supabase.sql` no Supabase
   - configure os secrets `SUPABASE_URL`, `SUPABASE_ANON` e `SUPABASE_TOKEN` no Worker
   - o usuário final não precisa preencher token ou configuração
-- **GitHub**: usado para hospedar o app via GitHub Pages. A gravação de dados pelo usuário final deve passar pelo banco remoto/API, não por token GitHub no navegador.
+- **GitHub**: usado para versionar o código e manter o espelho GitHub Pages. A gravação de dados do usuário final passa pelo banco remoto/API.
 
 ## Deploy
 
