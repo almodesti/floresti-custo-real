@@ -918,11 +918,15 @@ function kgAdesivoPedido(p) {
 // Fórmula da plaina (ADENDO §3): bruto consumido por peça
 // m3B = (altura/esp) × 0.04 × (base+20) × comp × qtd / 1e6
 function m3BrutoItem(it) {
+  if (+it.m3_bruto_planilha > 0) return +it.m3_bruto_planilha;
   const esp = +(state.estoque_inicial.espessura_lamela_mm) || 30.07;
   return (it.altura_mm / esp) * 0.04 * (it.base_mm + 20) * it.comp_mm * it.qtd / 1e6;
 }
 function m3BrutoPedido(p) {
   return (p.itens||[]).reduce((s,it) => s + m3BrutoItem(it), 0);
+}
+function m3SerragemPedido(p) {
+  return (p.itens||[]).reduce((s,it) => s + (+it.m3_serragem_planilha || 0), 0);
 }
 
 function precoM3Pool(data) {
@@ -990,6 +994,7 @@ function custoPedido(pid) {
   const pM3  = precoM3Pool(p.data_entrega);
   const pKg  = precoKgPool(p.data_entrega);
   const m3B  = m3BrutoPedido(p);
+  const m3Serr = m3SerragemPedido(p);
   const kgAde = kgAdesivoPedido(p);
   // custo madeira via fórmula da plaina (ADENDO §3) — não usa fator mensal
   const cM = pM3!=null ? pM3*m3B : null;
@@ -1024,7 +1029,7 @@ function custoPedido(pid) {
   const mR = cT!=null ? p.valor_venda - cT : null;
   const mP = (mR!=null&&p.valor_venda) ? mR/p.valor_venda*100 : null;
   const taxaMedia = m3 > 0 ? kgAde/m3 : null;
-  return { m3, m3B, pM3, pKg, kgAde, taxaMedia, cM, cA, cFrete, cTrat, cSec, cEn, cOut, cMensal, cCaixa, cT, mR, mP,
+  return { m3, m3B, m3Serr, pM3, pKg, kgAde, taxaMedia, cM, cA, cFrete, cTrat, cSec, cEn, cOut, cMensal, cCaixa, cT, mR, mP,
     ok: cT!=null,
     av: { semM3Pool: pM3==null, semKgPool: pKg==null } };
 }
@@ -1556,7 +1561,7 @@ function renderMargens() {
     if (c.av.semKgPool) avs.push('sem pool adesivo');
     const kgAdeStr = c.kgAde!=null ? `${c.kgAde.toFixed(1)} kg<br><span style="color:var(--muted);font-size:.72rem">${c.taxaMedia!=null?c.taxaMedia.toFixed(2)+' kg/m³':''}</span>` : '—';
     const custoStr = c.cT!=null
-      ? `${brl(c.cT)}<br><span style="color:var(--muted);font-size:.72rem">${c.m3B!=null?m3f(c.m3B)+' bruto':''}${c.cMensal?` · mensais ${brl(c.cMensal)}`:''}</span>`
+      ? `${brl(c.cT)}<br><span style="color:var(--muted);font-size:.72rem">${c.m3B!=null?m3f(c.m3B)+' bruto':''}${c.m3Serr?` · serragem ${m3f(c.m3Serr)}`:''}${c.cMensal?` · mensais ${brl(c.cMensal)}`:''}</span>`
       : `<span style="color:var(--muted);font-size:.75rem">${avs.join(', ')}</span>`;
     return `<tr onclick="editPedido('${p.id}')">
       <td>${p.orcamento}</td>
@@ -1646,7 +1651,7 @@ function renderBalanco() {
 // EXPORTAR MARGENS CSV
 // ═══════════════════════════════════════════════════════
 function exportMargensCSV() {
-  const headers = ['Orcamento','Cliente','Local','Data Entrega','m3 Aplainado','Valor Venda (R$)','Custo Madeira (R$)','Custo Cola (R$)','Frete (R$)','Tratamento (R$)','Secagem (R$)','Energia (R$)','Outros (R$)','Custos Mensais Industriais (R$)','Custo Total (R$)','Margem R$','Margem %'];
+  const headers = ['Orcamento','Cliente','Local','Data Entrega','m3 Aplainado','m3 Bruto','m3 Serragem Planilha','Valor Venda (R$)','Custo Madeira (R$)','Custo Cola (R$)','Frete (R$)','Tratamento (R$)','Secagem (R$)','Energia (R$)','Outros (R$)','Custos Mensais Industriais (R$)','Custo Total (R$)','Margem R$','Margem %'];
   const rows = [...state.pedidos]
     .sort((a,b) => (b.data_entrega||'').localeCompare(a.data_entrega||''))
     .map(p => {
@@ -1654,6 +1659,8 @@ function exportMargensCSV() {
       return [
         p.orcamento, p.cliente, p.local||'', p.data_entrega||'',
         c ? c.m3.toFixed(3) : '',
+        c ? c.m3B.toFixed(3) : '',
+        c ? c.m3Serr.toFixed(3) : '',
         (p.valor_venda||0).toFixed(2),
         c?.cM != null ? c.cM.toFixed(2) : '',
         c?.cA != null ? c.cA.toFixed(2) : '',
