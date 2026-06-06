@@ -183,6 +183,7 @@ tbody tr:hover { background: #f8f7f5; cursor: pointer; }
   <button class="nav-btn" onclick="showTab('compras')" data-tab="compras">Compras</button>
   <button class="nav-btn" onclick="showTab('pedidos')" data-tab="pedidos">Pedidos</button>
   <button class="nav-btn" onclick="showTab('est-mensal')" data-tab="est-mensal">Estoque</button>
+  <button class="nav-btn" onclick="showTab('custos')" data-tab="custos">Custos</button>
   <button class="nav-btn" onclick="showTab('margens')" data-tab="margens">Margens</button>
   <button class="nav-btn" onclick="showTab('balanco')" data-tab="balanco">Balanço</button>
   <button class="nav-btn" onclick="showTab('dados')" data-tab="dados">Dados</button>
@@ -448,6 +449,61 @@ tbody tr:hover { background: #f8f7f5; cursor: pointer; }
   </div>
 </section>
 
+<!-- ════════════════ CUSTOS MENSAIS ════════════════ -->
+<section class="section" id="s-custos">
+  <div class="sec-title">Custos Mensais <span class="tag">Rateio por produção</span></div>
+  <div class="card">
+    <div class="card-head"><span class="card-title" id="title-custo">Novo Custo</span></div>
+    <div class="card-body">
+      <form id="form-custo" onsubmit="saveCustoMensal(event)">
+        <div class="form-grid">
+          <div class="fg"><label>Mês Referência *</label><input type="month" id="cm-mes" required></div>
+          <div class="fg"><label>Categoria *</label>
+            <select id="cm-cat" required onchange="updateCustoFlags()">
+              <option value="energia">Energia</option>
+              <option value="colaboradores">Colaboradores</option>
+              <option value="materiais_producao">Materiais de produção</option>
+              <option value="manutencao">Manutenção</option>
+              <option value="maquinas_equipamentos">Máquinas/equipamentos</option>
+              <option value="financeiro">Financeiro</option>
+              <option value="marketing">Marketing</option>
+              <option value="administrativo">Administrativo</option>
+              <option value="outros">Outros</option>
+            </select>
+          </div>
+          <div class="fg"><label>Subcategoria</label><input type="text" id="cm-subcat" placeholder="Ex: salários, lixas, PRONAMPE"></div>
+          <div class="fg"><label>Valor R$ *</label><input type="number" id="cm-valor" step="0.01" min="0" required placeholder="0,00"></div>
+          <div class="fg" style="grid-column:1/-1"><label>Descrição</label><input type="text" id="cm-desc" placeholder="Ex: folha produção, energia fábrica, manutenção plaina"></div>
+          <div class="fg" style="grid-column:1/-1">
+            <label>Critério</label>
+            <div style="display:flex; gap:1rem; flex-wrap:wrap; font-size:.82rem; color:var(--muted); padding-top:.35rem">
+              <label style="display:flex; align-items:center; gap:.35rem"><input type="checkbox" id="cm-industrial" checked> entra no custo industrial</label>
+              <label style="display:flex; align-items:center; gap:.35rem"><input type="checkbox" id="cm-caixa" checked> entra no custo caixa</label>
+            </div>
+          </div>
+          <div class="fg" style="grid-column:1/-1"><label>Observações</label><input type="text" id="cm-obs" placeholder="Critério, origem do valor, competência etc."></div>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">Salvar</button>
+          <button type="button" class="btn btn-secondary" onclick="cancelEditCusto()">Novo</button>
+          <button type="button" class="btn btn-danger" id="btn-del-custo" style="display:none" onclick="deleteCustoMensal()">Excluir</button>
+          <span class="form-hint" id="hint-custo"></span>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><span class="card-title">Resumo por mês</span></div>
+    <div class="card-body" style="padding-top:0"><div id="custos-resumo"></div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><span class="card-title">Lançamentos</span></div>
+    <div class="card-body" style="padding-top:0"><div class="tbl-wrap"><div id="list-custos"></div></div></div>
+  </div>
+</section>
+
 <!-- ════════════════ MARGENS ════════════════ -->
 <section class="section" id="s-margens">
   <div class="sec-title">Margens por Pedido <span class="tag">Calculado</span></div>
@@ -683,12 +739,13 @@ function emptyState() {
     compras: [],
     pedidos: [],
     apontamentos_mensais: [],
-    leituras_tambor: []
+    leituras_tambor: [],
+    custos_mensais: []
   };
 }
 
 let state = emptyState();
-let editId = { compra:null, pedido:null, estMensal:null, tambor:null };
+let editId = { compra:null, pedido:null, estMensal:null, tambor:null, custo:null };
 let formItens = [];
 
 const CATEGORIAS = {
@@ -699,6 +756,18 @@ const CATEGORIAS = {
   tratamento: { label:'Tratamento', unidade:'R$',  cor:'badge-gray' },
   secagem:    { label:'Secagem',    unidade:'R$',  cor:'badge-gray' },
   outros:     { label:'Outros',     unidade:'R$',  cor:'badge-gray' }
+};
+
+const CUSTO_CATEGORIAS = {
+  energia: 'Energia',
+  colaboradores: 'Colaboradores',
+  materiais_producao: 'Materiais de produção',
+  manutencao: 'Manutenção',
+  maquinas_equipamentos: 'Máquinas/equipamentos',
+  financeiro: 'Financeiro',
+  marketing: 'Marketing',
+  administrativo: 'Administrativo',
+  outros: 'Outros'
 };
 function comprasCat(cat, ateDt) {
   return state.compras.filter(c => c.categoria===cat && (!ateDt || c.data<=ateDt));
@@ -765,7 +834,7 @@ function loadState() {
         delete state.compras_madeira;
         delete state.compras_adesivo;
         state.version = '2.1.0';
-        ['compras','pedidos','apontamentos_mensais','leituras_tambor']
+        ['compras','pedidos','apontamentos_mensais','leituras_tambor','custos_mensais']
           .forEach(k => { if (!Array.isArray(state[k])) state[k] = []; });
         saveState();
         return true;
@@ -773,7 +842,7 @@ function loadState() {
       // New format: has compras array
       if (data.compras !== undefined) {
         state = { ...emptyState(), ...data };
-        ['compras','pedidos','apontamentos_mensais','leituras_tambor']
+        ['compras','pedidos','apontamentos_mensais','leituras_tambor','custos_mensais']
           .forEach(k => { if (!Array.isArray(state[k])) state[k] = []; });
         return true;
       }
@@ -825,6 +894,7 @@ function allMeses() {
   state.pedidos.forEach(p => p.data_entrega && s.add(dateToMes(p.data_entrega)));
   state.compras.forEach(c => c.data && s.add(dateToMes(c.data)));
   state.apontamentos_mensais.forEach(a => s.add(a.mes_referencia));
+  state.custos_mensais.forEach(c => c.mes_referencia && s.add(c.mes_referencia));
   return [...s].filter(Boolean).sort();
 }
 
@@ -902,6 +972,15 @@ function fatorVigente(mesRef) {
   return null;
 }
 
+function custosMensaisMes(mesRef) {
+  return state.custos_mensais.filter(c => c.mes_referencia === mesRef);
+}
+
+function totalCustosMensais(mesRef, campo) {
+  return custosMensaisMes(mesRef)
+    .filter(c => campo ? c[campo] !== false : true)
+    .reduce((s,c) => s + (+c.valor || 0), 0);
+}
 
 function custoPedido(pid) {
   const p = state.pedidos.find(x => x.id===pid);
@@ -936,12 +1015,16 @@ function custoPedido(pid) {
   const outMes = comprasCat('outros').filter(c => dateToMes(c.data)===mes).reduce((s,c) => s+c.valor_total, 0);
   const cEn = totalAplMes > 0 ? (enMes / totalAplMes) * m3 : 0;
   const cOut = totalAplMes > 0 ? (outMes / totalAplMes) * m3 : 0;
+  const cmIndustrial = totalCustosMensais(mes, 'entra_industrial');
+  const cmCaixa = totalCustosMensais(mes, 'entra_caixa');
+  const cMensal = totalAplMes > 0 ? (cmIndustrial / totalAplMes) * m3 : 0;
+  const cCaixa = totalAplMes > 0 ? (cmCaixa / totalAplMes) * m3 : 0;
 
-  const cT = (cM!=null&&cA!=null) ? cM+cA+cFrete+cTrat+cSec+cEn+cOut : null;
+  const cT = (cM!=null&&cA!=null) ? cM+cA+cFrete+cTrat+cSec+cEn+cOut+cMensal : null;
   const mR = cT!=null ? p.valor_venda - cT : null;
   const mP = (mR!=null&&p.valor_venda) ? mR/p.valor_venda*100 : null;
   const taxaMedia = m3 > 0 ? kgAde/m3 : null;
-  return { m3, m3B, pM3, pKg, kgAde, taxaMedia, cM, cA, cFrete, cTrat, cSec, cEn, cOut, cT, mR, mP,
+  return { m3, m3B, pM3, pKg, kgAde, taxaMedia, cM, cA, cFrete, cTrat, cSec, cEn, cOut, cMensal, cCaixa, cT, mR, mP,
     ok: cT!=null,
     av: { semM3Pool: pM3==null, semKgPool: pKg==null } };
 }
@@ -956,11 +1039,13 @@ function balancaMes(mesRef) {
   const colaMes = comprasCat('cola').filter(c => dateToMes(c.data)===mesRef);
   const adKg  = colaMes.reduce((s,c)=>s+c.quantidade,0);
   const adRS  = colaMes.reduce((s,c)=>s+c.valor_total,0);
+  const custosIndustrial = totalCustosMensais(mesRef, 'entra_industrial');
+  const custosCaixa = totalCustosMensais(mesRef, 'entra_caixa');
   const pedsMes = state.pedidos.filter(p=>p.data_entrega&&dateToMes(p.data_entrega)===mesRef);
   const m3Ped = fR ? fR.m3Ped : pedsMes.reduce((s,p)=>s+m3Aplainado(p),0);
   const kgCons = pedsMes.reduce((s,p)=>s+kgAdesivoPedido(p),0);
   const travado = apt && pM3 ? (apt.m3_2a_linha+apt.m3_refilo)*pM3 : null;
-  return { mesRef, entM3, entRS, adKg, adRS, kgCons, m3Ped, travado,
+  return { mesRef, entM3, entRS, adKg, adRS, kgCons, m3Ped, travado, custosIndustrial, custosCaixa,
     fator: fR?.fator, consumo: fR?.consumo, serragem: fR?.serragem,
     v2a: fR?.v2a, vRef: fR?.vRef,
     rendimento: fR&&fR.consumo>0 ? m3Ped/fR.consumo*100 : null,
@@ -989,6 +1074,7 @@ function renderTab(tab) {
     case 'compras':    renderCompras();   break;
     case 'pedidos':    renderPedidos();   break;
     case 'est-mensal': renderEstMensal(); break;
+    case 'custos':     renderCustos();    break;
     case 'margens':    renderMargens();   break;
     case 'balanco':    renderBalanco();   break;
     case 'dados':      renderDados(); renderEstInicial(); break;
@@ -1374,6 +1460,54 @@ function renderTambor() {
 }
 
 // ═══════════════════════════════════════════════════════
+// RENDER — CUSTOS MENSAIS
+// ═══════════════════════════════════════════════════════
+function renderCustos() {
+  const meses = [...new Set(state.custos_mensais.map(c => c.mes_referencia).filter(Boolean))]
+    .sort((a,b)=>b.localeCompare(a));
+
+  const resumo = meses.map(m => {
+    const cs = custosMensaisMes(m);
+    const industrial = totalCustosMensais(m, 'entra_industrial');
+    const caixa = totalCustosMensais(m, 'entra_caixa');
+    const m3Mes = state.pedidos
+      .filter(p => p.data_entrega && dateToMes(p.data_entrega) === m)
+      .reduce((s,p) => s + m3Aplainado(p), 0);
+    const rpm3 = m3Mes > 0 ? industrial / m3Mes : null;
+    return `<tr>
+      <td><strong>${mesLabel(m)}</strong></td>
+      <td class="mono">${cs.length}</td>
+      <td class="mono">${brl(industrial)}</td>
+      <td class="mono">${brl(caixa)}</td>
+      <td class="mono">${m3f(m3Mes)}</td>
+      <td class="mono">${rpm3!=null?brl(rpm3):'—'}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('custos-resumo').innerHTML = resumo ? `
+    <table><thead><tr><th>Mês</th><th>Lanç.</th><th>Industrial</th><th>Caixa</th><th>m³ produzido</th><th>Industrial R$/m³</th></tr></thead>
+    <tbody>${resumo}</tbody></table>`
+    : '<div class="tbl-empty">Nenhum custo mensal cadastrado.</div>';
+
+  const rows = [...state.custos_mensais]
+    .sort((a,b)=>(b.mes_referencia||'').localeCompare(a.mes_referencia||''))
+    .map(c => `<tr onclick="editCustoMensal('${c.id}')">
+      <td><strong>${mesLabel(c.mes_referencia)}</strong></td>
+      <td>${CUSTO_CATEGORIAS[c.categoria] || c.categoria}</td>
+      <td>${c.subcategoria || '—'}</td>
+      <td>${c.descricao || '—'}</td>
+      <td class="mono">${brl(c.valor)}</td>
+      <td>${c.entra_industrial !== false ? '<span class="badge badge-green">industrial</span>' : '<span class="badge badge-gray">fora industrial</span>'}</td>
+      <td>${c.entra_caixa !== false ? '<span class="badge badge-primary">caixa</span>' : '<span class="badge badge-gray">fora caixa</span>'}</td>
+    </tr>`).join('');
+
+  document.getElementById('list-custos').innerHTML = rows ? `
+    <table><thead><tr><th>Mês</th><th>Categoria</th><th>Subcat.</th><th>Descrição</th><th>Valor</th><th>Industrial</th><th>Caixa</th></tr></thead>
+    <tbody>${rows}</tbody></table>`
+    : '<div class="tbl-empty">Nenhum lançamento cadastrado.</div>';
+}
+
+// ═══════════════════════════════════════════════════════
 // RENDER — ESTOQUE INICIAL
 // ═══════════════════════════════════════════════════════
 function renderEstInicial() {
@@ -1422,7 +1556,7 @@ function renderMargens() {
     if (c.av.semKgPool) avs.push('sem pool adesivo');
     const kgAdeStr = c.kgAde!=null ? `${c.kgAde.toFixed(1)} kg<br><span style="color:var(--muted);font-size:.72rem">${c.taxaMedia!=null?c.taxaMedia.toFixed(2)+' kg/m³':''}</span>` : '—';
     const custoStr = c.cT!=null
-      ? `${brl(c.cT)}<br><span style="color:var(--muted);font-size:.72rem">${c.m3B!=null?m3f(c.m3B)+' bruto':''}</span>`
+      ? `${brl(c.cT)}<br><span style="color:var(--muted);font-size:.72rem">${c.m3B!=null?m3f(c.m3B)+' bruto':''}${c.cMensal?` · mensais ${brl(c.cMensal)}`:''}</span>`
       : `<span style="color:var(--muted);font-size:.75rem">${avs.join(', ')}</span>`;
     return `<tr onclick="editPedido('${p.id}')">
       <td>${p.orcamento}</td>
@@ -1498,6 +1632,8 @@ function renderBalanco() {
             <dt>Entradas kg</dt><dd>${kgf(b.adKg)}</dd>
             <dt>Entradas R$</dt><dd>${brl(b.adRS)}</dd>
             <dt>Consumo kg (est.)</dt><dd>${kgf(b.kgCons)}</dd>
+            <dt>Custos industriais</dt><dd>${brl(b.custosIndustrial)}</dd>
+            <dt>Custos caixa</dt><dd>${brl(b.custosCaixa)}</dd>
           </dl>
         </div>
       </div>
@@ -1510,7 +1646,7 @@ function renderBalanco() {
 // EXPORTAR MARGENS CSV
 // ═══════════════════════════════════════════════════════
 function exportMargensCSV() {
-  const headers = ['Orcamento','Cliente','Local','Data Entrega','m3 Aplainado','Valor Venda (R$)','Custo Madeira (R$)','Custo Cola (R$)','Frete (R$)','Tratamento (R$)','Secagem (R$)','Energia (R$)','Outros (R$)','Custo Total (R$)','Margem R$','Margem %'];
+  const headers = ['Orcamento','Cliente','Local','Data Entrega','m3 Aplainado','Valor Venda (R$)','Custo Madeira (R$)','Custo Cola (R$)','Frete (R$)','Tratamento (R$)','Secagem (R$)','Energia (R$)','Outros (R$)','Custos Mensais Industriais (R$)','Custo Total (R$)','Margem R$','Margem %'];
   const rows = [...state.pedidos]
     .sort((a,b) => (b.data_entrega||'').localeCompare(a.data_entrega||''))
     .map(p => {
@@ -1526,6 +1662,7 @@ function exportMargensCSV() {
         c?.cSec != null ? c.cSec.toFixed(2) : '',
         c?.cEn != null ? c.cEn.toFixed(2) : '',
         c?.cOut != null ? c.cOut.toFixed(2) : '',
+        c?.cMensal != null ? c.cMensal.toFixed(2) : '',
         c?.cT != null ? c.cT.toFixed(2) : '',
         c?.mR != null ? c.mR.toFixed(2) : '',
         c?.mP != null ? c.mP.toFixed(2) : ''
@@ -1555,6 +1692,7 @@ function renderDados() {
       <dt>Pedidos</dt><dd>${state.pedidos.length}</dd>
       <dt>Apontamentos mensais</dt><dd>${state.apontamentos_mensais.length}</dd>
       <dt>Leituras tambor</dt><dd>${state.leituras_tambor.length}</dd>
+      <dt>Custos mensais</dt><dd>${state.custos_mensais.length}</dd>
       <dt>Versão</dt><dd>${state.version}</dd>
     </dl>`;
 }
@@ -1736,6 +1874,84 @@ function cancelEditTambor() {
   document.getElementById('title-tambor').textContent = 'Leitura de Tambor (Cola)';
   document.getElementById('btn-del-tambor').style.display = 'none';
   document.getElementById('hint-tambor').textContent = '';
+}
+
+// ═══════════════════════════════════════════════════════
+// FORM HANDLERS — CUSTOS MENSAIS
+// ═══════════════════════════════════════════════════════
+function updateCustoFlags() {
+  const cat = document.getElementById('cm-cat').value;
+  const industrial = !['financeiro','marketing','administrativo'].includes(cat);
+  document.getElementById('cm-industrial').checked = industrial;
+  document.getElementById('cm-caixa').checked = true;
+}
+
+function saveCustoMensal(e) {
+  e.preventDefault();
+  const existing = editId.custo ? state.custos_mensais.find(c => c.id === editId.custo) : null;
+  const rec = {
+    id: editId.custo || uid(),
+    mes_referencia: document.getElementById('cm-mes').value,
+    categoria: document.getElementById('cm-cat').value,
+    subcategoria: document.getElementById('cm-subcat').value.trim(),
+    descricao: document.getElementById('cm-desc').value.trim(),
+    valor: parseFloat(document.getElementById('cm-valor').value) || 0,
+    entra_industrial: document.getElementById('cm-industrial').checked,
+    entra_caixa: document.getElementById('cm-caixa').checked,
+    obs: document.getElementById('cm-obs').value.trim(),
+    created_at: existing?.created_at || new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  };
+
+  if (editId.custo) {
+    const i = state.custos_mensais.findIndex(c => c.id === editId.custo);
+    if (i >= 0) state.custos_mensais[i] = rec;
+  } else {
+    state.custos_mensais.push(rec);
+  }
+
+  document.getElementById('hint-custo').textContent = '✓ Salvo em ' + new Date().toLocaleTimeString('pt-BR');
+  editId.custo = null;
+  document.getElementById('btn-del-custo').style.display = 'none';
+  document.getElementById('title-custo').textContent = 'Novo Custo';
+  saveState();
+  renderCustos();
+}
+
+function editCustoMensal(id) {
+  const c = state.custos_mensais.find(x => x.id === id);
+  if (!c) return;
+  editId.custo = id;
+  document.getElementById('cm-mes').value = c.mes_referencia || '';
+  document.getElementById('cm-cat').value = c.categoria || 'outros';
+  document.getElementById('cm-subcat').value = c.subcategoria || '';
+  document.getElementById('cm-desc').value = c.descricao || '';
+  document.getElementById('cm-valor').value = c.valor || 0;
+  document.getElementById('cm-industrial').checked = c.entra_industrial !== false;
+  document.getElementById('cm-caixa').checked = c.entra_caixa !== false;
+  document.getElementById('cm-obs').value = c.obs || '';
+  document.getElementById('title-custo').textContent = 'Editando Custo';
+  document.getElementById('btn-del-custo').style.display = '';
+  document.getElementById('hint-custo').textContent = '';
+  document.getElementById('s-custos').scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function deleteCustoMensal() {
+  if (!editId.custo) return;
+  if (!confirm('Excluir este custo mensal?')) return;
+  state.custos_mensais = state.custos_mensais.filter(c => c.id !== editId.custo);
+  saveState();
+  cancelEditCusto();
+  renderCustos();
+}
+
+function cancelEditCusto() {
+  editId.custo = null;
+  document.getElementById('form-custo').reset();
+  document.getElementById('title-custo').textContent = 'Novo Custo';
+  document.getElementById('btn-del-custo').style.display = 'none';
+  document.getElementById('hint-custo').textContent = '';
+  updateCustoFlags();
 }
 
 // ═══════════════════════════════════════════════════════
@@ -2048,7 +2264,7 @@ function applyFull(data, silent) {
   delete state.compras_madeira;
   delete state.compras_adesivo;
   state.version = '2.1.0';
-  ['compras','pedidos','apontamentos_mensais','leituras_tambor']
+  ['compras','pedidos','apontamentos_mensais','leituras_tambor','custos_mensais']
     .forEach(k => { if (!Array.isArray(state[k])) state[k] = []; });
   saveState();
   renderTab(currentTab);
@@ -2852,8 +3068,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // defaults para campos de data
   document.getElementById('cc-data').value = today();
   document.getElementById('tb-data').value = today();
+  document.getElementById('cm-mes').value = today().slice(0,7);
   updatePedidoOptions();
   updateCompraForm();
+  updateCustoFlags();
   document.getElementById('cc-qty').addEventListener('input', updateCompraUnit);
   document.getElementById('cc-valor').addEventListener('input', updateCompraUnit);
   renderPainel();
