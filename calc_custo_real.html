@@ -681,8 +681,9 @@ tbody tr:hover { background: #f8f7f5; cursor: pointer; }
           <div class="fg"><label>R$/m³ do Bruto Inicial</label><input type="number" id="ei-rpm3" step="0.01" min="0" value="0"></div>
           <div class="fg"><label>m³ 2ª Linha</label><input type="number" id="ei-2a" step="0.001" min="0" value="0"></div>
           <div class="fg"><label>m³ Refilo</label><input type="number" id="ei-refilo" step="0.001" min="0" value="0"></div>
-          <div class="fg"><label>Gramatura cola (kg/m²/linha)</label><input type="number" id="ei-taxa" step="0.001" min="0" value="0.25"></div>
+          <div class="fg"><label>Gramatura cola (kg/m³/linha)</label><input type="number" id="ei-taxa" step="0.001" min="0" value="0.25"></div>
           <div class="fg"><label>Espessura lamela (mm)</label><input type="number" id="ei-lamela" step="0.01" min="1" value="30.07"></div>
+          <div class="fg"><label>kg Adesivo no Pool</label><input type="number" id="ei-kgpool" step="0.1" min="0" value="0"></div>
           <div class="fg"><label>R$/kg Adesivo Inicial</label><input type="number" id="ei-rpkg" step="0.01" min="0" value="0"></div>
         </div>
         <div class="form-actions">
@@ -735,7 +736,7 @@ tbody tr:hover { background: #f8f7f5; cursor: pointer; }
 function emptyState() {
   return {
     version: '2.1.0',
-    estoque_inicial: { m3_bruto_pool:0, m3_2a_linha:0, m3_refilo:0, taxa_kg_m3_padrao:0.25, espessura_lamela_mm:30.07, r_m3_bruto:0, r_kg_adesivo:0 },
+    estoque_inicial: { m3_bruto_pool:0, m3_2a_linha:0, m3_refilo:0, taxa_kg_m3_padrao:0.25, espessura_lamela_mm:30.07, r_m3_bruto:0, r_kg_adesivo:0, kg_adesivo_pool:0 },
     compras: [],
     pedidos: [],
     apontamentos_mensais: [],
@@ -938,7 +939,9 @@ function precoM3Pool(data) {
 }
 
 function precoKgPool(data) {
-  let kg = 0, rs = 0;
+  const ei = state.estoque_inicial;
+  const eiKg = +(ei.kg_adesivo_pool)||0;
+  let kg = eiKg, rs = (+(ei.r_kg_adesivo)||0) * eiKg;
   comprasCat('cola', data)
     .forEach(c => { kg += c.quantidade; rs += c.valor_total; });
   return kg > 0 ? rs/kg : null;
@@ -1149,8 +1152,13 @@ function calcKPIs(ini, fim) {
   const k4m3 = est2aFim;
 
   // KPI 5 — Serragem (consumo de bruto menos destinos recuperáveis)
-  const k5m3 = (consumoBruto!=null)
-    ? consumoBruto - k2m3 - (est2aFim||0) - (estRefiloFim||0)
+  // Usa variação (estoque final − estoque inicial) em vez de valores absolutos
+  const ei2a    = ini <= '2026-01-02' ? (+ei.m3_2a_linha||0) : 0;
+  const eiRef   = ini <= '2026-01-02' ? (+ei.m3_refilo||0) : 0;
+  const var2a   = est2aFim!=null     ? (est2aFim - ei2a)     : null;
+  const varRef  = estRefiloFim!=null ? (estRefiloFim - eiRef) : null;
+  const k5m3 = (consumoBruto!=null && var2a!=null && varRef!=null)
+    ? consumoBruto - k2m3 - var2a - varRef
     : null;
 
   // KPI 6 — Adesivo
@@ -1172,7 +1180,15 @@ function calcKPIs(ini, fim) {
   const k9cMad    = custos.reduce((s,c)=>s+(c.cM||0),0);
   const k9cAde    = custos.reduce((s,c)=>s+(c.cA||0),0);
   const k9cTot    = custos.reduce((s,c)=>s+(c.cT||0),0);
-  const k9rpm3    = k9m3tot>0 ? k9cTot/k9m3tot : null;
+  const custosCaixaPeriodo = state.custos_mensais
+    .filter(c => c.entra_caixa !== false && c.mes_referencia && `${c.mes_referencia}-01` >= ini && `${c.mes_referencia}-01` <= fim)
+    .reduce((s,c) => s + (+c.valor || 0), 0);
+  const custosIndustriaisPeriodo = state.custos_mensais
+    .filter(c => c.entra_industrial !== false && c.mes_referencia && `${c.mes_referencia}-01` >= ini && `${c.mes_referencia}-01` <= fim)
+    .reduce((s,c) => s + (+c.valor || 0), 0);
+  const k9rpm3Competencia = k9m3tot>0 ? k9cTot/k9m3tot : null;
+  const k9rpm3Caixa = k2m3>0 && custosCaixaPeriodo>0 ? custosCaixaPeriodo/k2m3 : null;
+  const k9rpm3    = k9rpm3Caixa ?? k9rpm3Competencia;
   const k9madRpm3 = k9m3tot>0 ? k9cMad/k9m3tot : null;
   const k9adeRpm3 = k9m3tot>0 ? k9cAde/k9m3tot : null;
 
@@ -1187,8 +1203,10 @@ function calcKPIs(ini, fim) {
     k6:{ kg:k6kg, rs:k6rs, conf:pedsP.length?'estimativa':'sem-dado' },
     k7:{ du:k7du, hDisp:k7hDisp, conf:'parcial' },
     k8:{ pct:k8pct, fator:k8fator, consumo:consumoBruto, conf:k8pct!=null?'parcial':'sem-dado' },
-    k9:{ rpm3:k9rpm3, madRpm3:k9madRpm3, adeRpm3:k9adeRpm3,
-         conf:k9rpm3!=null?(custos.length===pedsP.length?'parcial':'estimativa'):'sem-dado' }
+    k9:{ rpm3:k9rpm3, rpm3Caixa:k9rpm3Caixa, rpm3Competencia:k9rpm3Competencia,
+         caixaTot:custosCaixaPeriodo, industrialTot:custosIndustriaisPeriodo,
+         madRpm3:k9madRpm3, adeRpm3:k9adeRpm3,
+         conf:k9rpm3!=null?(k9rpm3Caixa!=null?'solido':(custos.length===pedsP.length?'parcial':'estimativa')):'sem-dado' }
   };
 }
 
@@ -1292,7 +1310,9 @@ function renderPainel() {
       'Qual é o custo real R$/m³ de MLC acabado?',
       k.k9.rpm3 != null ? brl(k.k9.rpm3)+'/m³' : null,
       k.k9.rpm3 != null
-        ? `Madeira: <strong>${brl(k.k9.madRpm3)}/m³</strong> · Cola: <strong>${brl(k.k9.adeRpm3)}/m³</strong><br><em>Inclui frete, energia, tratamento se cadastrados</em>`
+        ? `${k.k9.rpm3Caixa!=null
+            ? `Caixa real: <strong>${brl(k.k9.caixaTot)}</strong> · competência industrial: <strong>${brl(k.k9.rpm3Competencia)}/m³</strong>`
+            : `Madeira: <strong>${brl(k.k9.madRpm3)}/m³</strong> · Cola: <strong>${brl(k.k9.adeRpm3)}/m³</strong>`}<br><em>Caixa usa pagamentos do período; competência usa consumo/NF.</em>`
         : 'Requer pedidos com data de entrega',
       k.k9.conf, verde),
   ];
@@ -1523,6 +1543,7 @@ function renderEstInicial() {
   document.getElementById('ei-refilo').value = ei.m3_refilo||0;
   document.getElementById('ei-taxa').value   = ei.taxa_kg_m3_padrao!=null ? ei.taxa_kg_m3_padrao : 0.25;
   document.getElementById('ei-lamela').value = ei.espessura_lamela_mm!=null ? ei.espessura_lamela_mm : 30.07;
+  document.getElementById('ei-kgpool').value = ei.kg_adesivo_pool||0;
   document.getElementById('ei-rpkg').value   = ei.r_kg_adesivo||0;
 }
 
@@ -1539,8 +1560,9 @@ function renderMargens() {
   // KPIs summary
   const comCalculo = pedidos.filter(p => custoPedido(p.id)?.ok);
   const totalVenda = pedidos.reduce((s,p)=>s+(+p.valor_venda||0),0);
+  const vendaCalculados = comCalculo.reduce((s,p)=>s+(+p.valor_venda||0),0);
   const totalCusto = comCalculo.reduce((s,p)=>{const c=custoPedido(p.id);return s+(c.cT||0);},0);
-  const totalMargem = totalVenda - (comCalculo.length ? totalCusto : 0);
+  const totalMargem = comCalculo.length ? vendaCalculados - totalCusto : 0;
   const margemPctMedia = comCalculo.length
     ? comCalculo.reduce((s,p)=>{const c=custoPedido(p.id);return s+(c.mP||0);},0)/comCalculo.length : null;
 
@@ -2019,7 +2041,7 @@ function savePedido(e) {
     data_entrega: document.getElementById('p-entrega').value || null,
     valor_venda: parseFloat(document.getElementById('p-valor').value)||0,
     obs: document.getElementById('p-obs').value.trim(),
-    itens: formItens.map(it => ({ id:it.id, desc:it.desc, qtd:it.qtd, base_mm:it.base_mm, altura_mm:it.altura_mm, comp_mm:it.comp_mm }))
+    itens: formItens.map(it => ({ id:it.id, desc:it.desc, qtd:it.qtd, base_mm:it.base_mm, altura_mm:it.altura_mm, comp_mm:it.comp_mm, ...(it.m3_bruto_planilha ? {m3_bruto_planilha:it.m3_bruto_planilha} : {}), ...(it.m3_serragem_planilha ? {m3_serragem_planilha:it.m3_serragem_planilha} : {}) }))
   };
   if (editId.pedido) {
     const i = state.pedidos.findIndex(p=>p.id===editId.pedido);
@@ -2132,6 +2154,7 @@ function saveEstInicial(e) {
     m3_refilo:           parseFloat(document.getElementById('ei-refilo').value)||0,
     taxa_kg_m3_padrao:   parseFloat(document.getElementById('ei-taxa').value)||0.25,
     espessura_lamela_mm: parseFloat(document.getElementById('ei-lamela').value)||30.07,
+    kg_adesivo_pool:     parseFloat(document.getElementById('ei-kgpool').value)||0,
     r_kg_adesivo:        parseFloat(document.getElementById('ei-rpkg').value)||0
   };
   saveState();
