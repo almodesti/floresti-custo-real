@@ -265,8 +265,9 @@ tbody tr:hover { background: #f8f7f5; cursor: pointer; }
         <button class="btn btn-xs btn-secondary" onclick="filtroCompras='todas';renderCompras()" id="fc-todas" style="font-weight:700">Todas</button>
         <button class="btn btn-xs btn-secondary" onclick="filtroCompras='madeira';renderCompras()" id="fc-madeira">Madeira</button>
         <button class="btn btn-xs btn-secondary" onclick="filtroCompras='cola';renderCompras()" id="fc-cola">Cola</button>
-        <button class="btn btn-xs btn-secondary" onclick="filtroCompras='energia';renderCompras()" id="fc-energia">Energia</button>
+        <button class="btn btn-xs btn-secondary" onclick="filtroCompras='acabamento';renderCompras()" id="fc-acabamento">Acabamento</button>
         <button class="btn btn-xs btn-secondary" onclick="filtroCompras='frete';renderCompras()" id="fc-frete">Frete</button>
+        <button class="btn btn-xs btn-secondary" onclick="filtroCompras='terceiros';renderCompras()" id="fc-terceiros">Terceiros</button>
         <button class="btn btn-xs btn-secondary" onclick="filtroCompras='tratamento';renderCompras()" id="fc-tratamento">Tratamento</button>
         <button class="btn btn-xs btn-secondary" onclick="filtroCompras='secagem';renderCompras()" id="fc-secagem">Secagem</button>
         <button class="btn btn-xs btn-secondary" onclick="filtroCompras='outros';renderCompras()" id="fc-outros">Outros</button>
@@ -290,11 +291,12 @@ tbody tr:hover { background: #f8f7f5; cursor: pointer; }
               <select id="cc-cat" onchange="updateCompraForm()">
                 <option value="madeira">Madeira</option>
                 <option value="cola">Cola</option>
-                <option value="energia">Energia</option>
-                <option value="frete">Frete</option>
+                <option value="acabamento">Acabamento (lixas, verniz, massa...)</option>
+                <option value="frete">Frete direto</option>
+                <option value="terceiros">Terceiros diretos</option>
                 <option value="tratamento">Tratamento</option>
                 <option value="secagem">Secagem</option>
-                <option value="outros">Outros</option>
+                <option value="outros">Outros variáveis</option>
               </select>
             </div>
             <div class="fg"><label>Data *</label><input type="date" id="cc-data" required></div>
@@ -451,36 +453,25 @@ tbody tr:hover { background: #f8f7f5; cursor: pointer; }
 
 <!-- ════════════════ CUSTOS MENSAIS ════════════════ -->
 <section class="section" id="s-custos">
-  <div class="sec-title">Custos Mensais <span class="tag">Rateio por produção</span></div>
+  <div class="sec-title">Custos Fixos <span class="tag">Industriais + Gerais</span></div>
   <div class="card">
     <div class="card-head"><span class="card-title" id="title-custo">Novo Custo</span></div>
     <div class="card-body">
       <form id="form-custo" onsubmit="saveCustoMensal(event)">
         <div class="form-grid">
           <div class="fg"><label>Mês Referência *</label><input type="month" id="cm-mes" required></div>
-          <div class="fg"><label>Categoria *</label>
-            <select id="cm-cat" required onchange="updateCustoFlags()">
-              <option value="energia">Energia</option>
-              <option value="colaboradores">Colaboradores</option>
-              <option value="materiais_producao">Materiais de produção</option>
-              <option value="manutencao">Manutenção</option>
-              <option value="maquinas_equipamentos">Máquinas/equipamentos</option>
-              <option value="financeiro">Financeiro</option>
-              <option value="marketing">Marketing</option>
-              <option value="administrativo">Administrativo</option>
-              <option value="outros">Outros</option>
+          <div class="fg"><label>Camada *</label>
+            <select id="cm-camada" onchange="updateCustoCategories()">
+              <option value="fixo_industrial">Fixo Industrial</option>
+              <option value="fixo_geral">Fixo Geral</option>
             </select>
           </div>
-          <div class="fg"><label>Subcategoria</label><input type="text" id="cm-subcat" placeholder="Ex: salários, lixas, PRONAMPE"></div>
-          <div class="fg"><label>Valor R$ *</label><input type="number" id="cm-valor" step="0.01" min="0" required placeholder="0,00"></div>
-          <div class="fg" style="grid-column:1/-1"><label>Descrição</label><input type="text" id="cm-desc" placeholder="Ex: folha produção, energia fábrica, manutenção plaina"></div>
-          <div class="fg" style="grid-column:1/-1">
-            <label>Critério</label>
-            <div style="display:flex; gap:1rem; flex-wrap:wrap; font-size:.82rem; color:var(--muted); padding-top:.35rem">
-              <label style="display:flex; align-items:center; gap:.35rem"><input type="checkbox" id="cm-industrial" checked> entra no custo industrial</label>
-              <label style="display:flex; align-items:center; gap:.35rem"><input type="checkbox" id="cm-caixa" checked> entra no custo caixa</label>
-            </div>
+          <div class="fg"><label>Categoria *</label>
+            <select id="cm-cat" required></select>
           </div>
+          <div class="fg"><label>Subcategoria</label><input type="text" id="cm-subcat" placeholder="Ex: salários, manutenção plaina"></div>
+          <div class="fg"><label>Valor R$ *</label><input type="number" id="cm-valor" step="0.01" min="0" required placeholder="0,00"></div>
+          <div class="fg" style="grid-column:1/-1"><label>Descrição</label><input type="text" id="cm-desc" placeholder="Ex: folha produção, energia fábrica, PRONAMPE"></div>
           <div class="fg" style="grid-column:1/-1"><label>Observações</label><input type="text" id="cm-obs" placeholder="Critério, origem do valor, competência etc."></div>
         </div>
         <div class="form-actions">
@@ -749,27 +740,45 @@ let state = emptyState();
 let editId = { compra:null, pedido:null, estMensal:null, tambor:null, custo:null };
 let formItens = [];
 
+// Camada 1 — Custos variáveis (via Compras)
 const CATEGORIAS = {
-  madeira:    { label:'Madeira',    unidade:'m\u00B3',  cor:'badge-green' },
-  cola:       { label:'Cola',       unidade:'kg',  cor:'badge-amber' },
-  energia:    { label:'Energia',    unidade:'kWh', cor:'badge-primary' },
-  frete:      { label:'Frete',      unidade:'R$',  cor:'badge-gray' },
-  tratamento: { label:'Tratamento', unidade:'R$',  cor:'badge-gray' },
-  secagem:    { label:'Secagem',    unidade:'R$',  cor:'badge-gray' },
-  outros:     { label:'Outros',     unidade:'R$',  cor:'badge-gray' }
+  madeira:    { label:'Madeira',      unidade:'m\u00B3',  cor:'badge-green' },
+  cola:       { label:'Cola',         unidade:'kg',  cor:'badge-amber' },
+  acabamento: { label:'Acabamento',   unidade:'R$',  cor:'badge-primary' },
+  frete:      { label:'Frete',        unidade:'R$',  cor:'badge-gray' },
+  terceiros:  { label:'Terceiros',    unidade:'R$',  cor:'badge-gray' },
+  tratamento: { label:'Tratamento',   unidade:'R$',  cor:'badge-gray' },
+  secagem:    { label:'Secagem',      unidade:'R$',  cor:'badge-gray' },
+  energia:    { label:'Energia',      unidade:'kWh', cor:'badge-primary' },
+  outros:     { label:'Outros',       unidade:'R$',  cor:'badge-gray' }
 };
 
-const CUSTO_CATEGORIAS = {
-  energia: 'Energia',
-  colaboradores: 'Colaboradores',
-  materiais_producao: 'Materiais de produção',
-  manutencao: 'Manutenção',
-  maquinas_equipamentos: 'Máquinas/equipamentos',
-  financeiro: 'Financeiro',
-  marketing: 'Marketing',
-  administrativo: 'Administrativo',
-  outros: 'Outros'
+// Camada 2 — Fixos industriais (via Custos Mensais)
+const FIXO_INDUSTRIAL_CATS = {
+  equipe_producao:   'Equipe de produção',
+  energia_fabrica:   'Energia fábrica',
+  manutencao:        'Manutenção produtiva',
+  seguranca_saude:   'Segurança/saúde ocupacional',
+  estrutura_fabrica: 'Estrutura da fábrica'
 };
+
+// Camada 3 — Fixos gerais (via Custos Mensais)
+const FIXO_GERAL_CATS = {
+  financeiro:         'Financeiro',
+  administrativo:     'Administrativo',
+  marketing:          'Marketing',
+  contabilidade:      'Contabilidade',
+  pro_labore:         'Pró-labore/admin',
+  parcelamentos:      'Parcelamentos/consórcios/PRONAMPE',
+  despesas_bancarias: 'Despesas bancárias'
+};
+
+const CUSTO_CATEGORIAS = { ...FIXO_INDUSTRIAL_CATS, ...FIXO_GERAL_CATS };
+
+function camadaAutoCat(cat) {
+  return FIXO_INDUSTRIAL_CATS[cat] ? 'fixo_industrial' : 'fixo_geral';
+}
+const CAMADA_LABEL = { fixo_industrial:'Fixo Industrial', fixo_geral:'Fixo Geral' };
 function comprasCat(cat, ateDt) {
   return state.compras.filter(c => c.categoria===cat && (!ateDt || c.data<=ateDt));
 }
@@ -983,10 +992,26 @@ function custosMensaisMes(mesRef) {
   return state.custos_mensais.filter(c => c.mes_referencia === mesRef);
 }
 
-function totalCustosMensais(mesRef, campo) {
+function totalCustosMensaisCamada(mesRef, camada) {
   return custosMensaisMes(mesRef)
-    .filter(c => campo ? c[campo] !== false : true)
+    .filter(c => {
+      const cc = c.camada || camadaAutoCat(c.categoria);
+      return cc === camada;
+    })
     .reduce((s,c) => s + (+c.valor || 0), 0);
+}
+
+function mediaFixoGeralRolante(mesRef) {
+  // Média dos últimos 3 meses com lançamento de fixo geral (inclui mesRef)
+  const vals = [];
+  let m = mesRef;
+  for (let i = 0; i < 6 && vals.length < 3; i++) {
+    const v = totalCustosMensaisCamada(m, 'fixo_geral');
+    if (v > 0) vals.push(v);
+    m = prevMes(m);
+  }
+  if (!vals.length) return 0;
+  return vals.reduce((s,v) => s+v, 0) / vals.length;
 }
 
 function custoPedido(pid) {
@@ -999,40 +1024,63 @@ function custoPedido(pid) {
   const m3B  = m3BrutoPedido(p);
   const m3Serr = m3SerragemPedido(p);
   const kgAde = kgAdesivoPedido(p);
-  // custo madeira via fórmula da plaina (ADENDO §3) — não usa fator mensal
-  const cM = pM3!=null ? pM3*m3B : null;
-  const cA = pKg!=null ? pKg*kgAde : null;
 
-  // Frete: direct link to order
-  const cFrete = state.compras.filter(c => c.categoria==='frete' && c.pedido_vinculado===pid)
-    .reduce((s,c) => s+c.valor_total, 0);
-
-  // Tratamento + Secagem: proportional to m³ bruto in the month
   const mes = dateToMes(p.data_entrega);
   const totalBrutoMes = state.pedidos.filter(q => q.data_entrega && dateToMes(q.data_entrega)===mes)
     .reduce((s,q) => s + m3BrutoPedido(q), 0);
+  const totalAplMes = state.pedidos.filter(q => q.data_entrega && dateToMes(q.data_entrega)===mes)
+    .reduce((s,q) => s + m3Aplainado(q), 0);
+
+  // ─── CAMADA 1: Variáveis de produção ───
+  const cM = pM3!=null ? pM3*m3B : null;
+  const cA = pKg!=null ? pKg*kgAde : null;
+
+  // Frete + Terceiros: vínculo direto ao pedido
+  const cFrete = state.compras.filter(c => c.categoria==='frete' && c.pedido_vinculado===pid)
+    .reduce((s,c) => s+c.valor_total, 0);
+  const cTerceiros = state.compras.filter(c => c.categoria==='terceiros' && c.pedido_vinculado===pid)
+    .reduce((s,c) => s+c.valor_total, 0);
+
+  // Frete + Terceiros sem vínculo: rateio por m³ aplainado no mês
+  const freteSemVinc = state.compras.filter(c => c.categoria==='frete' && !c.pedido_vinculado && dateToMes(c.data)===mes)
+    .reduce((s,c) => s+c.valor_total, 0);
+  const tercSemVinc = state.compras.filter(c => c.categoria==='terceiros' && !c.pedido_vinculado && dateToMes(c.data)===mes)
+    .reduce((s,c) => s+c.valor_total, 0);
+  const cFreteProp = totalAplMes > 0 ? (freteSemVinc / totalAplMes) * m3 : 0;
+  const cTercProp = totalAplMes > 0 ? (tercSemVinc / totalAplMes) * m3 : 0;
+
+  // Tratamento + Secagem: rateio por m³ bruto no mês
   const tratMes = comprasCat('tratamento').filter(c => dateToMes(c.data)===mes).reduce((s,c) => s+c.valor_total, 0);
   const secMes = comprasCat('secagem').filter(c => dateToMes(c.data)===mes).reduce((s,c) => s+c.valor_total, 0);
   const cTrat = totalBrutoMes > 0 ? (tratMes / totalBrutoMes) * m3B : 0;
   const cSec = totalBrutoMes > 0 ? (secMes / totalBrutoMes) * m3B : 0;
 
-  // Energia + Outros: proportional to m³ aplainado in the month
-  const totalAplMes = state.pedidos.filter(q => q.data_entrega && dateToMes(q.data_entrega)===mes)
-    .reduce((s,q) => s + m3Aplainado(q), 0);
+  // Acabamento + Energia + Outros: rateio por m³ aplainado no mês
+  const acabMes = comprasCat('acabamento').filter(c => dateToMes(c.data)===mes).reduce((s,c) => s+c.valor_total, 0);
   const enMes = comprasCat('energia').filter(c => dateToMes(c.data)===mes).reduce((s,c) => s+c.valor_total, 0);
   const outMes = comprasCat('outros').filter(c => dateToMes(c.data)===mes).reduce((s,c) => s+c.valor_total, 0);
+  const cAcab = totalAplMes > 0 ? (acabMes / totalAplMes) * m3 : 0;
   const cEn = totalAplMes > 0 ? (enMes / totalAplMes) * m3 : 0;
   const cOut = totalAplMes > 0 ? (outMes / totalAplMes) * m3 : 0;
-  const cmIndustrial = totalCustosMensais(mes, 'entra_industrial');
-  const cmCaixa = totalCustosMensais(mes, 'entra_caixa');
-  const cMensal = totalAplMes > 0 ? (cmIndustrial / totalAplMes) * m3 : 0;
-  const cCaixa = totalAplMes > 0 ? (cmCaixa / totalAplMes) * m3 : 0;
 
-  const cT = (cM!=null&&cA!=null) ? cM+cA+cFrete+cTrat+cSec+cEn+cOut+cMensal : null;
+  const cVar = (cM||0) + (cA||0) + cFrete + cFreteProp + cTerceiros + cTercProp + cTrat + cSec + cAcab + cEn + cOut;
+
+  // ─── CAMADA 2: Fixos industriais ───
+  const cmFixoInd = totalCustosMensaisCamada(mes, 'fixo_industrial');
+  const cFixoInd = totalAplMes > 0 ? (cmFixoInd / totalAplMes) * m3 : 0;
+
+  // ─── CAMADA 3: Fixos gerais (média rolante últimos 3 meses) ───
+  const fgMedia = mediaFixoGeralRolante(mes);
+  const cFixoGeral = totalAplMes > 0 ? (fgMedia / totalAplMes) * m3 : 0;
+
+  // ─── Total ───
+  const cT = (cM!=null&&cA!=null) ? cVar + cFixoInd + cFixoGeral : null;
   const mR = cT!=null ? p.valor_venda - cT : null;
   const mP = (mR!=null&&p.valor_venda) ? mR/p.valor_venda*100 : null;
   const taxaMedia = m3 > 0 ? kgAde/m3 : null;
-  return { m3, m3B, m3Serr, pM3, pKg, kgAde, taxaMedia, cM, cA, cFrete, cTrat, cSec, cEn, cOut, cMensal, cCaixa, cT, mR, mP,
+  return { m3, m3B, m3Serr, pM3, pKg, kgAde, taxaMedia,
+    cM, cA, cFrete:cFrete+cFreteProp, cTerceiros:cTerceiros+cTercProp, cTrat, cSec, cAcab, cEn, cOut,
+    cVar, cFixoInd, cFixoGeral, cT, mR, mP,
     ok: cT!=null,
     av: { semM3Pool: pM3==null, semKgPool: pKg==null } };
 }
@@ -1047,13 +1095,13 @@ function balancaMes(mesRef) {
   const colaMes = comprasCat('cola').filter(c => dateToMes(c.data)===mesRef);
   const adKg  = colaMes.reduce((s,c)=>s+c.quantidade,0);
   const adRS  = colaMes.reduce((s,c)=>s+c.valor_total,0);
-  const custosIndustrial = totalCustosMensais(mesRef, 'entra_industrial');
-  const custosCaixa = totalCustosMensais(mesRef, 'entra_caixa');
+  const custosFixoInd = totalCustosMensaisCamada(mesRef, 'fixo_industrial');
+  const custosFixoGeral = mediaFixoGeralRolante(mesRef);
   const pedsMes = state.pedidos.filter(p=>p.data_entrega&&dateToMes(p.data_entrega)===mesRef);
   const m3Ped = fR ? fR.m3Ped : pedsMes.reduce((s,p)=>s+m3Aplainado(p),0);
   const kgCons = pedsMes.reduce((s,p)=>s+kgAdesivoPedido(p),0);
   const travado = apt && pM3 ? (apt.m3_2a_linha+apt.m3_refilo)*pM3 : null;
-  return { mesRef, entM3, entRS, adKg, adRS, kgCons, m3Ped, travado, custosIndustrial, custosCaixa,
+  return { mesRef, entM3, entRS, adKg, adRS, kgCons, m3Ped, travado, custosFixoInd, custosFixoGeral,
     fator: fR?.fator, consumo: fR?.consumo, serragem: fR?.serragem,
     v2a: fR?.v2a, vRef: fR?.vRef,
     rendimento: fR&&fR.consumo>0 ? m3Ped/fR.consumo*100 : null,
@@ -1180,17 +1228,15 @@ function calcKPIs(ini, fim) {
   const k9cMad    = custos.reduce((s,c)=>s+(c.cM||0),0);
   const k9cAde    = custos.reduce((s,c)=>s+(c.cA||0),0);
   const k9cTot    = custos.reduce((s,c)=>s+(c.cT||0),0);
-  const custosCaixaPeriodo = state.custos_mensais
-    .filter(c => c.entra_caixa !== false && c.mes_referencia && `${c.mes_referencia}-01` >= ini && `${c.mes_referencia}-01` <= fim)
-    .reduce((s,c) => s + (+c.valor || 0), 0);
-  const custosIndustriaisPeriodo = state.custos_mensais
-    .filter(c => c.entra_industrial !== false && c.mes_referencia && `${c.mes_referencia}-01` >= ini && `${c.mes_referencia}-01` <= fim)
-    .reduce((s,c) => s + (+c.valor || 0), 0);
-  const k9rpm3Competencia = k9m3tot>0 ? k9cTot/k9m3tot : null;
-  const k9rpm3Caixa = k2m3>0 && custosCaixaPeriodo>0 ? custosCaixaPeriodo/k2m3 : null;
-  const k9rpm3    = k9rpm3Caixa ?? k9rpm3Competencia;
+  const k9cVar    = custos.reduce((s,c)=>s+(c.cVar||0),0);
+  const k9cFixoInd= custos.reduce((s,c)=>s+(c.cFixoInd||0),0);
+  const k9cFixoGeral= custos.reduce((s,c)=>s+(c.cFixoGeral||0),0);
+  const k9rpm3    = k9m3tot>0 ? k9cTot/k9m3tot : null;
   const k9madRpm3 = k9m3tot>0 ? k9cMad/k9m3tot : null;
   const k9adeRpm3 = k9m3tot>0 ? k9cAde/k9m3tot : null;
+  const k9varRpm3 = k9m3tot>0 ? k9cVar/k9m3tot : null;
+  const k9fixIndRpm3 = k9m3tot>0 ? k9cFixoInd/k9m3tot : null;
+  const k9fixGeralRpm3 = k9m3tot>0 ? k9cFixoGeral/k9m3tot : null;
 
   const pM3 = precoM3Pool(fim);
 
@@ -1203,10 +1249,9 @@ function calcKPIs(ini, fim) {
     k6:{ kg:k6kg, rs:k6rs, conf:pedsP.length?'estimativa':'sem-dado' },
     k7:{ du:k7du, hDisp:k7hDisp, conf:'parcial' },
     k8:{ pct:k8pct, fator:k8fator, consumo:consumoBruto, conf:k8pct!=null?'parcial':'sem-dado' },
-    k9:{ rpm3:k9rpm3, rpm3Caixa:k9rpm3Caixa, rpm3Competencia:k9rpm3Competencia,
-         caixaTot:custosCaixaPeriodo, industrialTot:custosIndustriaisPeriodo,
-         madRpm3:k9madRpm3, adeRpm3:k9adeRpm3,
-         conf:k9rpm3!=null?(k9rpm3Caixa!=null?'solido':(custos.length===pedsP.length?'parcial':'estimativa')):'sem-dado' }
+    k9:{ rpm3:k9rpm3, madRpm3:k9madRpm3, adeRpm3:k9adeRpm3,
+         varRpm3:k9varRpm3, fixIndRpm3:k9fixIndRpm3, fixGeralRpm3:k9fixGeralRpm3,
+         conf:k9rpm3!=null?(custos.length===pedsP.length?'parcial':'estimativa'):'sem-dado' }
   };
 }
 
@@ -1248,6 +1293,20 @@ function renderPainel() {
   if (mesesSemApt.length) alertas.push(`<div class="alert alert-warn">⚠ Sem apontamento em: ${mesesSemApt.map(mesLabel).join(', ')} — KPIs de estoque incompletos.</div>`);
   if (!comprasCat('madeira').length) alertas.push('<div class="alert alert-info">ℹ Nenhuma compra de madeira cadastrada.</div>');
   if (!comprasCat('cola').length) alertas.push('<div class="alert alert-info">ℹ Nenhuma compra de cola/adesivo cadastrada.</div>');
+
+  // Pedidos sem itens
+  const semItens = state.pedidos.filter(p => !p.itens || !p.itens.length || m3Aplainado(p) === 0);
+  if (semItens.length) alertas.push(`<div class="alert alert-warn">⚠ ${semItens.length} pedido(s) sem itens/dimensões — sem cálculo de custo: ${semItens.map(p => p.orcamento).join(', ')}</div>`);
+
+  // Meses com produção mas sem custos fixos
+  const mesesComProd = meses.filter(m => state.pedidos.some(p => p.data_entrega && dateToMes(p.data_entrega)===m));
+  const mesesSemFixo = mesesComProd.filter(m => {
+    const temFixoInd = totalCustosMensaisCamada(m, 'fixo_industrial') > 0;
+    const temFixoGeral = totalCustosMensaisCamada(m, 'fixo_geral') > 0;
+    return !temFixoInd && !temFixoGeral;
+  });
+  if (mesesSemFixo.length) alertas.push(`<div class="alert alert-warn">⚠ Sem custos fixos em: ${mesesSemFixo.map(mesLabel).join(', ')} — margem aparece inflada (só variável).</div>`);
+
   if (!alertas.length) alertas.push('<div class="alert alert-ok">✓ Todos os dados necessários estão presentes.</div>');
   document.getElementById('painel-alertas').innerHTML = alertas.join('');
 
@@ -1310,9 +1369,7 @@ function renderPainel() {
       'Qual é o custo real R$/m³ de MLC acabado?',
       k.k9.rpm3 != null ? brl(k.k9.rpm3)+'/m³' : null,
       k.k9.rpm3 != null
-        ? `${k.k9.rpm3Caixa!=null
-            ? `Caixa real: <strong>${brl(k.k9.caixaTot)}</strong> · competência industrial: <strong>${brl(k.k9.rpm3Competencia)}/m³</strong>`
-            : `Madeira: <strong>${brl(k.k9.madRpm3)}/m³</strong> · Cola: <strong>${brl(k.k9.adeRpm3)}/m³</strong>`}<br><em>Caixa usa pagamentos do período; competência usa consumo/NF.</em>`
+        ? `Variável: <strong>${brl(k.k9.varRpm3)}/m³</strong> · Fixo ind.: <strong>${brl(k.k9.fixIndRpm3)}/m³</strong> · Fixo geral: <strong>${brl(k.k9.fixGeralRpm3)}/m³</strong>`
         : 'Requer pedidos com data de entrega',
       k.k9.conf, verde),
   ];
@@ -1427,23 +1484,33 @@ function importPedidosPlanilha(input) {
 // RENDER — PEDIDOS
 // ═══════════════════════════════════════════════════════
 function renderPedidos() {
+  const semItens = state.pedidos.filter(p => !p.itens || !p.itens.length || m3Aplainado(p) === 0);
+
   const rows = [...state.pedidos].sort((a,b)=>(b.data_entrega||'').localeCompare(a.data_entrega||'')).map(p => {
+    const m3a = m3Aplainado(p);
     const c = custoPedido(p.id);
     const mBadge = c?.ok ? `<span class="badge ${c.mP>=0?'badge-green':'badge-red'}">${pctf(c.mP)}</span>` : '<span class="badge badge-gray">sem dados</span>';
+    const m3Cell = m3a === 0
+      ? '<span class="badge badge-red" style="font-size:.7rem">0 itens</span>'
+      : `<span class="mono">${m3f(m3a)}</span>`;
     return `<tr onclick="editPedido('${p.id}')">
       <td>${p.orcamento}</td>
       <td><strong>${p.cliente}</strong></td>
       <td>${p.local||'—'}</td>
       <td>${fmtDate(p.data_entrega)}</td>
       <td class="mono">${brl(p.valor_venda)}</td>
-      <td class="mono">${m3f(m3Aplainado(p))}</td>
+      <td>${m3Cell}</td>
       <td>${mBadge}</td>
     </tr>`;}).join('');
 
-  document.getElementById('list-pedidos').innerHTML = rows ? `
+  const alertaItens = semItens.length
+    ? `<div class="alert alert-warn" style="margin-bottom:.8rem">⚠ ${semItens.length} pedido(s) sem itens/dimensões — custo não será calculado: ${semItens.map(p => p.orcamento + ' ' + p.cliente).join(', ')}</div>`
+    : '';
+
+  document.getElementById('list-pedidos').innerHTML = alertaItens + (rows ? `
     <table><thead><tr><th>Orç.</th><th>Cliente</th><th>Local</th><th>Entrega</th><th>Venda</th><th>m³</th><th>Margem</th></tr></thead>
     <tbody>${rows}</tbody></table>`
-    : '<div class="tbl-empty">Nenhum pedido cadastrado.</div>';
+    : '<div class="tbl-empty">Nenhum pedido cadastrado.</div>');
 }
 
 
@@ -1493,41 +1560,47 @@ function renderCustos() {
 
   const resumo = meses.map(m => {
     const cs = custosMensaisMes(m);
-    const industrial = totalCustosMensais(m, 'entra_industrial');
-    const caixa = totalCustosMensais(m, 'entra_caixa');
+    const fixoInd = totalCustosMensaisCamada(m, 'fixo_industrial');
+    const fixoGeral = totalCustosMensaisCamada(m, 'fixo_geral');
+    const total = fixoInd + fixoGeral;
     const m3Mes = state.pedidos
       .filter(p => p.data_entrega && dateToMes(p.data_entrega) === m)
       .reduce((s,p) => s + m3Aplainado(p), 0);
-    const rpm3 = m3Mes > 0 ? industrial / m3Mes : null;
+    const rpm3 = m3Mes > 0 ? total / m3Mes : null;
     return `<tr>
       <td><strong>${mesLabel(m)}</strong></td>
       <td class="mono">${cs.length}</td>
-      <td class="mono">${brl(industrial)}</td>
-      <td class="mono">${brl(caixa)}</td>
+      <td class="mono">${brl(fixoInd)}</td>
+      <td class="mono">${brl(fixoGeral)}</td>
+      <td class="mono">${brl(total)}</td>
       <td class="mono">${m3f(m3Mes)}</td>
       <td class="mono">${rpm3!=null?brl(rpm3):'—'}</td>
     </tr>`;
   }).join('');
 
   document.getElementById('custos-resumo').innerHTML = resumo ? `
-    <table><thead><tr><th>Mês</th><th>Lanç.</th><th>Industrial</th><th>Caixa</th><th>m³ produzido</th><th>Industrial R$/m³</th></tr></thead>
+    <table><thead><tr><th>Mês</th><th>Lanç.</th><th>Fixo Industrial</th><th>Fixo Geral</th><th>Total</th><th>m³ produzido</th><th>R$/m³</th></tr></thead>
     <tbody>${resumo}</tbody></table>`
-    : '<div class="tbl-empty">Nenhum custo mensal cadastrado.</div>';
+    : '<div class="tbl-empty">Nenhum custo fixo cadastrado.</div>';
 
   const rows = [...state.custos_mensais]
     .sort((a,b)=>(b.mes_referencia||'').localeCompare(a.mes_referencia||''))
-    .map(c => `<tr onclick="editCustoMensal('${c.id}')">
+    .map(c => {
+      const cam = c.camada || camadaAutoCat(c.categoria);
+      const camBadge = cam === 'fixo_industrial'
+        ? '<span class="badge badge-green">Industrial</span>'
+        : '<span class="badge badge-primary">Geral</span>';
+      return `<tr onclick="editCustoMensal('${c.id}')">
       <td><strong>${mesLabel(c.mes_referencia)}</strong></td>
+      <td>${camBadge}</td>
       <td>${CUSTO_CATEGORIAS[c.categoria] || c.categoria}</td>
       <td>${c.subcategoria || '—'}</td>
       <td>${c.descricao || '—'}</td>
       <td class="mono">${brl(c.valor)}</td>
-      <td>${c.entra_industrial !== false ? '<span class="badge badge-green">industrial</span>' : '<span class="badge badge-gray">fora industrial</span>'}</td>
-      <td>${c.entra_caixa !== false ? '<span class="badge badge-primary">caixa</span>' : '<span class="badge badge-gray">fora caixa</span>'}</td>
-    </tr>`).join('');
+    </tr>`;}).join('');
 
   document.getElementById('list-custos').innerHTML = rows ? `
-    <table><thead><tr><th>Mês</th><th>Categoria</th><th>Subcat.</th><th>Descrição</th><th>Valor</th><th>Industrial</th><th>Caixa</th></tr></thead>
+    <table><thead><tr><th>Mês</th><th>Camada</th><th>Categoria</th><th>Subcat.</th><th>Descrição</th><th>Valor</th></tr></thead>
     <tbody>${rows}</tbody></table>`
     : '<div class="tbl-empty">Nenhum lançamento cadastrado.</div>';
 }
@@ -1574,25 +1647,41 @@ function renderMargens() {
       <div class="kpi"><div class="kpi-label">Margem % Média</div><div class="kpi-value" style="color:${(margemPctMedia||0)>=0?'var(--green-mid)':'var(--red)'}">${pctf(margemPctMedia)}</div></div>
     </div>`;
 
+  // Totais por camada
+  const totalVar = comCalculo.reduce((s,p)=>{const c=custoPedido(p.id);return s+(c.cVar||0);},0);
+  const totalFixoInd = comCalculo.reduce((s,p)=>{const c=custoPedido(p.id);return s+(c.cFixoInd||0);},0);
+  const totalFixoGeral = comCalculo.reduce((s,p)=>{const c=custoPedido(p.id);return s+(c.cFixoGeral||0);},0);
+  const totalM3Calc = comCalculo.reduce((s,p)=>{const c=custoPedido(p.id);return s+(c.m3||0);},0);
+
+  const kpisCamada = comCalculo.length ? `
+    <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(170px,1fr)); gap:.8rem; margin-bottom:1rem">
+      <div class="kpi"><div class="kpi-label">Variável / m³</div><div class="kpi-value" style="font-size:1rem">${totalM3Calc>0?brl(totalVar/totalM3Calc):'—'}</div><div class="kpi-sub">${brl(totalVar)} total</div></div>
+      <div class="kpi"><div class="kpi-label">Fixo Industrial / m³</div><div class="kpi-value" style="font-size:1rem">${totalM3Calc>0?brl(totalFixoInd/totalM3Calc):'—'}</div><div class="kpi-sub">${brl(totalFixoInd)} total</div></div>
+      <div class="kpi"><div class="kpi-label">Fixo Geral / m³</div><div class="kpi-value" style="font-size:1rem">${totalM3Calc>0?brl(totalFixoGeral/totalM3Calc):'—'}</div><div class="kpi-sub">${brl(totalFixoGeral)} total</div></div>
+      <div class="kpi" style="border-top-color:var(--accent)"><div class="kpi-label">Custo Real Total / m³</div><div class="kpi-value" style="font-size:1rem">${totalM3Calc>0?brl(totalCusto/totalM3Calc):'—'}</div><div class="kpi-sub">${brl(totalCusto)} total</div></div>
+    </div>` : '';
+
   const rows = pedidos.map(p => {
     const c = custoPedido(p.id);
     if (!c) return `<tr onclick="editPedido('${p.id}')"><td>${p.orcamento}</td><td>${p.cliente}</td><td>${fmtDate(p.data_entrega)}</td>
-      <td colspan="6" style="color:var(--muted); font-size:.78rem">Sem data de entrega</td></tr>`;
+      <td colspan="8" style="color:var(--muted); font-size:.78rem">Sem data de entrega</td></tr>`;
     const avs = [];
     if (c.av.semM3Pool) avs.push('sem pool madeira');
     if (c.av.semKgPool) avs.push('sem pool adesivo');
-    const kgAdeStr = c.kgAde!=null ? `${c.kgAde.toFixed(1)} kg<br><span style="color:var(--muted);font-size:.72rem">${c.taxaMedia!=null?c.taxaMedia.toFixed(2)+' kg/m³':''}</span>` : '—';
-    const custoStr = c.cT!=null
-      ? `${brl(c.cT)}<br><span style="color:var(--muted);font-size:.72rem">${c.m3B!=null?m3f(c.m3B)+' bruto':''}${c.m3Serr?` · serragem ${m3f(c.m3Serr)}`:''}${c.cMensal?` · mensais ${brl(c.cMensal)}`:''}</span>`
-      : `<span style="color:var(--muted);font-size:.75rem">${avs.join(', ')}</span>`;
+    const varStr = c.cVar!=null ? brl(c.cVar) : '—';
+    const fixIndStr = c.cFixoInd ? brl(c.cFixoInd) : '—';
+    const fixGeralStr = c.cFixoGeral ? brl(c.cFixoGeral) : '—';
+    const totalStr = c.cT!=null ? brl(c.cT) : `<span style="color:var(--muted);font-size:.75rem">${avs.join(', ')}</span>`;
     return `<tr onclick="editPedido('${p.id}')">
       <td>${p.orcamento}</td>
       <td><strong>${p.cliente}</strong></td>
       <td>${fmtDate(p.data_entrega)}</td>
       <td class="mono">${m3f(c.m3)}</td>
       <td class="mono">${brl(p.valor_venda)}</td>
-      <td class="mono" style="font-size:.78rem">${kgAdeStr}</td>
-      <td class="mono" style="font-size:.78rem">${custoStr}</td>
+      <td class="mono" style="font-size:.78rem">${varStr}</td>
+      <td class="mono" style="font-size:.78rem">${fixIndStr}</td>
+      <td class="mono" style="font-size:.78rem">${fixGeralStr}</td>
+      <td class="mono" style="font-size:.78rem">${totalStr}</td>
       <td class="mono ${c.mR!=null?(c.mR>=0?'pos':'neg'):''}">${c.mR!=null?brl(c.mR):'—'}</td>
       <td>${c.mP!=null?`<span class="badge ${c.mP>=0?'badge-green':'badge-red'}">${pctf(c.mP)}</span>`:'—'}</td>
     </tr>`;}).join('');
@@ -1600,13 +1689,16 @@ function renderMargens() {
   // Totals row (only for calculated pedidos)
   const totalRow = comCalculo.length ? `
     <tr style="border-top:2px solid var(--border); font-weight:600; background:#f8f7f5">
-      <td colspan="6" style="text-align:right; font-size:.75rem; color:var(--muted)">Total (${comCalculo.length} calculado${comCalculo.length>1?'s':''})</td>
+      <td colspan="5" style="text-align:right; font-size:.75rem; color:var(--muted)">Total (${comCalculo.length} calculado${comCalculo.length>1?'s':''})</td>
+      <td class="mono">${brl(totalVar)}</td>
+      <td class="mono">${brl(totalFixoInd)}</td>
+      <td class="mono">${brl(totalFixoGeral)}</td>
       <td class="mono">${brl(totalCusto)}</td>
       <td class="mono ${totalMargem>=0?'pos':'neg'}">${brl(totalMargem)}</td>
       <td><span class="badge ${(margemPctMedia||0)>=0?'badge-green':'badge-red'}">${pctf(margemPctMedia)}</span></td>
     </tr>` : '';
 
-  document.getElementById('margens-content').innerHTML = kpis + `
+  document.getElementById('margens-content').innerHTML = kpis + kpisCamada + `
     <div class="card">
       <div class="card-head">
         <span class="card-title">Detalhes por Pedido</span>
@@ -1614,7 +1706,7 @@ function renderMargens() {
       </div>
       <div class="card-body" style="padding-top:0">
       <div class="tbl-wrap"><table>
-      <thead><tr><th>Orç.</th><th>Cliente</th><th>Entrega</th><th>m³</th><th>Venda</th><th>Adesivo</th><th>Custo</th><th>Margem R$</th><th>Margem %</th></tr></thead>
+      <thead><tr><th>Orç.</th><th>Cliente</th><th>Entrega</th><th>m³</th><th>Venda</th><th>Variável</th><th>Fixo Ind.</th><th>Fixo Geral</th><th>Custo Total</th><th>Margem R$</th><th>Margem %</th></tr></thead>
       <tbody>${rows}</tbody>
       ${totalRow ? '<tfoot>'+totalRow+'</tfoot>' : ''}
       </table></div></div></div>`;
@@ -1659,8 +1751,8 @@ function renderBalanco() {
             <dt>Entradas kg</dt><dd>${kgf(b.adKg)}</dd>
             <dt>Entradas R$</dt><dd>${brl(b.adRS)}</dd>
             <dt>Consumo kg (est.)</dt><dd>${kgf(b.kgCons)}</dd>
-            <dt>Custos industriais</dt><dd>${brl(b.custosIndustrial)}</dd>
-            <dt>Custos caixa</dt><dd>${brl(b.custosCaixa)}</dd>
+            <dt>Fixos industriais</dt><dd>${brl(b.custosFixoInd)}</dd>
+            <dt>Fixos gerais</dt><dd>${brl(b.custosFixoGeral)}</dd>
           </dl>
         </div>
       </div>
@@ -1673,7 +1765,7 @@ function renderBalanco() {
 // EXPORTAR MARGENS CSV
 // ═══════════════════════════════════════════════════════
 function exportMargensCSV() {
-  const headers = ['Orcamento','Cliente','Local','Data Entrega','m3 Aplainado','m3 Bruto','m3 Serragem Planilha','Valor Venda (R$)','Custo Madeira (R$)','Custo Cola (R$)','Frete (R$)','Tratamento (R$)','Secagem (R$)','Energia (R$)','Outros (R$)','Custos Mensais Industriais (R$)','Custo Total (R$)','Margem R$','Margem %'];
+  const headers = ['Orcamento','Cliente','Local','Data Entrega','m3 Aplainado','m3 Bruto','m3 Serragem Planilha','Valor Venda (R$)','Custo Madeira (R$)','Custo Cola (R$)','Frete (R$)','Terceiros (R$)','Tratamento (R$)','Secagem (R$)','Acabamento (R$)','Energia (R$)','Outros (R$)','Total Variavel (R$)','Fixo Industrial (R$)','Fixo Geral (R$)','Custo Total (R$)','Margem R$','Margem %'];
   const rows = [...state.pedidos]
     .sort((a,b) => (b.data_entrega||'').localeCompare(a.data_entrega||''))
     .map(p => {
@@ -1687,11 +1779,15 @@ function exportMargensCSV() {
         c?.cM != null ? c.cM.toFixed(2) : '',
         c?.cA != null ? c.cA.toFixed(2) : '',
         c?.cFrete != null ? c.cFrete.toFixed(2) : '',
+        c?.cTerceiros != null ? c.cTerceiros.toFixed(2) : '',
         c?.cTrat != null ? c.cTrat.toFixed(2) : '',
         c?.cSec != null ? c.cSec.toFixed(2) : '',
+        c?.cAcab != null ? c.cAcab.toFixed(2) : '',
         c?.cEn != null ? c.cEn.toFixed(2) : '',
         c?.cOut != null ? c.cOut.toFixed(2) : '',
-        c?.cMensal != null ? c.cMensal.toFixed(2) : '',
+        c?.cVar != null ? c.cVar.toFixed(2) : '',
+        c?.cFixoInd != null ? c.cFixoInd.toFixed(2) : '',
+        c?.cFixoGeral != null ? c.cFixoGeral.toFixed(2) : '',
         c?.cT != null ? c.cT.toFixed(2) : '',
         c?.mR != null ? c.mR.toFixed(2) : '',
         c?.mP != null ? c.mP.toFixed(2) : ''
@@ -1760,12 +1856,12 @@ function updateCompraForm() {
   const unitLabel = document.getElementById('cc-unit-label');
   const fgPedido = document.getElementById('fg-pedido');
 
-  qtyLabel.textContent = cat === 'frete' || cat === 'tratamento' || cat === 'secagem' || cat === 'outros'
+  qtyLabel.textContent = cat === 'frete' || cat === 'terceiros' || cat === 'tratamento' || cat === 'secagem' || cat === 'acabamento' || cat === 'outros'
     ? 'Base de rateio *'
     : `Quantidade (${unidade}) *`;
   qty.placeholder = unidade === 'R$' ? 'Use 1 para custo fixo ou valor da base' : '0.000';
   unitLabel.textContent = `R$/${unidade} (calculado)`;
-  fgPedido.style.display = cat === 'frete' ? '' : 'none';
+  fgPedido.style.display = (cat === 'frete' || cat === 'terceiros') ? '' : 'none';
   updateCompraUnit();
 }
 
@@ -1792,7 +1888,7 @@ function saveCompra(e) {
     quantidade: parseFloat(document.getElementById('cc-qty').value)||0,
     unidade: categoriaUnidade(cat),
     valor_total: parseFloat(document.getElementById('cc-valor').value)||0,
-    pedido_vinculado: cat === 'frete' ? (document.getElementById('cc-pedido').value || null) : null
+    pedido_vinculado: (cat === 'frete' || cat === 'terceiros') ? (document.getElementById('cc-pedido').value || null) : null
   };
   if (editId.compra) {
     const i = state.compras.findIndex(c=>c.id===editId.compra);
@@ -1908,11 +2004,11 @@ function cancelEditTambor() {
 // ═══════════════════════════════════════════════════════
 // FORM HANDLERS — CUSTOS MENSAIS
 // ═══════════════════════════════════════════════════════
-function updateCustoFlags() {
-  const cat = document.getElementById('cm-cat').value;
-  const industrial = !['financeiro','marketing','administrativo'].includes(cat);
-  document.getElementById('cm-industrial').checked = industrial;
-  document.getElementById('cm-caixa').checked = true;
+function updateCustoCategories() {
+  const camada = document.getElementById('cm-camada').value;
+  const sel = document.getElementById('cm-cat');
+  const cats = camada === 'fixo_industrial' ? FIXO_INDUSTRIAL_CATS : FIXO_GERAL_CATS;
+  sel.innerHTML = Object.entries(cats).map(([k,v]) => `<option value="${k}">${v}</option>`).join('');
 }
 
 function saveCustoMensal(e) {
@@ -1921,12 +2017,11 @@ function saveCustoMensal(e) {
   const rec = {
     id: editId.custo || uid(),
     mes_referencia: document.getElementById('cm-mes').value,
+    camada: document.getElementById('cm-camada').value,
     categoria: document.getElementById('cm-cat').value,
     subcategoria: document.getElementById('cm-subcat').value.trim(),
     descricao: document.getElementById('cm-desc').value.trim(),
     valor: parseFloat(document.getElementById('cm-valor').value) || 0,
-    entra_industrial: document.getElementById('cm-industrial').checked,
-    entra_caixa: document.getElementById('cm-caixa').checked,
     obs: document.getElementById('cm-obs').value.trim(),
     created_at: existing?.created_at || new Date().toISOString(),
     updated_at: new Date().toISOString()
@@ -1952,12 +2047,13 @@ function editCustoMensal(id) {
   if (!c) return;
   editId.custo = id;
   document.getElementById('cm-mes').value = c.mes_referencia || '';
-  document.getElementById('cm-cat').value = c.categoria || 'outros';
+  const camada = c.camada || camadaAutoCat(c.categoria);
+  document.getElementById('cm-camada').value = camada;
+  updateCustoCategories();
+  document.getElementById('cm-cat').value = c.categoria || '';
   document.getElementById('cm-subcat').value = c.subcategoria || '';
   document.getElementById('cm-desc').value = c.descricao || '';
   document.getElementById('cm-valor').value = c.valor || 0;
-  document.getElementById('cm-industrial').checked = c.entra_industrial !== false;
-  document.getElementById('cm-caixa').checked = c.entra_caixa !== false;
   document.getElementById('cm-obs').value = c.obs || '';
   document.getElementById('title-custo').textContent = 'Editando Custo';
   document.getElementById('btn-del-custo').style.display = '';
@@ -1980,7 +2076,7 @@ function cancelEditCusto() {
   document.getElementById('title-custo').textContent = 'Novo Custo';
   document.getElementById('btn-del-custo').style.display = 'none';
   document.getElementById('hint-custo').textContent = '';
-  updateCustoFlags();
+  updateCustoCategories();
 }
 
 // ═══════════════════════════════════════════════════════
@@ -3101,7 +3197,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('cm-mes').value = today().slice(0,7);
   updatePedidoOptions();
   updateCompraForm();
-  updateCustoFlags();
+  updateCustoCategories();
   document.getElementById('cc-qty').addEventListener('input', updateCompraUnit);
   document.getElementById('cc-valor').addEventListener('input', updateCompraUnit);
   renderPainel();
