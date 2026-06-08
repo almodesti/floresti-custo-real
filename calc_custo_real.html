@@ -197,13 +197,7 @@ tbody tr:hover { background: #f8f7f5; cursor: pointer; }
   <div id="painel-alertas"></div>
   <div class="kpi9-periodo">
     <label>Período</label>
-    <select id="kpi-periodo" onchange="renderPainel()">
-      <option value="ano">Ano corrente</option>
-      <option value="mes">Mês corrente</option>
-      <option value="mes-ant">Mês anterior</option>
-      <option value="tri">Trimestre corrente</option>
-      <option value="tudo">Todo o histórico</option>
-    </select>
+    <select id="kpi-periodo" onchange="renderPainel()"></select>
     <span id="kpi-periodo-label" style="font-size:.75rem; color:var(--muted)"></span>
   </div>
   <div class="kpi9-grid" id="painel-kpis9"></div>
@@ -1285,17 +1279,57 @@ function renderTab(tab) {
 // ═══════════════════════════════════════════════════════
 // KPIs — HELPERS
 // ═══════════════════════════════════════════════════════
+function populaPeriodoSelect() {
+  const sel = document.getElementById('kpi-periodo');
+  if (!sel) return;
+  const prev = sel.value;
+  const meses = allMeses().slice().reverse(); // mais recente primeiro
+  const now = new Date(); const y = now.getFullYear(), m = now.getMonth()+1;
+  const pad = n => String(n).padStart(2,'0');
+  const mesAtual = `${y}-${pad(m)}`;
+
+  let html = '';
+  // Meses individuais (com dados)
+  if (meses.length) {
+    html += '<optgroup label="Mês individual">';
+    meses.forEach(ym => {
+      const nPeds = state.pedidos.filter(p => p.data_entrega && dateToMes(p.data_entrega)===ym).length;
+      const extra = nPeds ? ` (${nPeds} ped.)` : '';
+      html += `<option value="m:${ym}">${mesLabel(ym)}${extra}</option>`;
+    });
+    html += '</optgroup>';
+  }
+  // Agrupados
+  html += '<optgroup label="Agrupado">';
+  html += `<option value="ano">Ano ${y}</option>`;
+  html += `<option value="tri">Trimestre corrente</option>`;
+  html += `<option value="tudo">Todo o histórico</option>`;
+  html += '</optgroup>';
+
+  sel.innerHTML = html;
+  // Restaurar seleção anterior, ou default para o mês mais recente com pedidos
+  if (prev && sel.querySelector(`option[value="${prev}"]`)) {
+    sel.value = prev;
+  } else {
+    const mesComPed = meses.find(ym => state.pedidos.some(p => p.data_entrega && dateToMes(p.data_entrega)===ym));
+    sel.value = mesComPed ? `m:${mesComPed}` : (meses[0] ? `m:${meses[0]}` : 'ano');
+  }
+}
+
 function getPeriodo() {
   const sel = document.getElementById('kpi-periodo')?.value || 'ano';
   const now = new Date(); const y = now.getFullYear(), m = now.getMonth()+1;
   const pad = n => String(n).padStart(2,'0');
-  if (sel === 'ano')     return { ini:`${y}-01-01`, fim:today(), label:`01/jan – ${fmtDate(today())} ${y}` };
-  if (sel === 'mes')     return { ini:`${y}-${pad(m)}-01`, fim:today(), label:mesLabel(`${y}-${pad(m)}`) };
-  if (sel === 'mes-ant') {
-    const pm=m===1?12:m-1, py=m===1?y-1:y;
-    const fim=`${py}-${pad(pm)}-${new Date(py,pm,0).getDate()}`;
-    return { ini:`${py}-${pad(pm)}-01`, fim, label:mesLabel(`${py}-${pad(pm)}`) };
+
+  // Mês individual: "m:2026-04"
+  if (sel.startsWith('m:')) {
+    const ym = sel.slice(2);
+    const [yy,mm] = ym.split('-').map(Number);
+    const lastDay = new Date(yy, mm, 0).getDate();
+    return { ini:`${ym}-01`, fim:`${ym}-${pad(lastDay)}`, label:mesLabel(ym) };
   }
+
+  if (sel === 'ano')  return { ini:`${y}-01-01`, fim:today(), label:`Ano ${y}` };
   if (sel === 'tri') {
     const t=Math.floor((m-1)/3), mi=t*3+1;
     return { ini:`${y}-${pad(mi)}-01`, fim:today(), label:`T${t+1}/${y}` };
@@ -1423,6 +1457,7 @@ function kpi9card(num, pergunta, valorPrincipal, sub, conf, borderColor) {
 // RENDER — PAINEL
 // ═══════════════════════════════════════════════════════
 function renderPainel() {
+  populaPeriodoSelect();
   const { ini, fim, label } = getPeriodo();
   const el = document.getElementById('kpi-periodo-label');
   if (el) el.textContent = label;
