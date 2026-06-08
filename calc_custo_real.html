@@ -1013,6 +1013,100 @@ function totalCustosMensaisCamada(mesRef, camada) {
     .reduce((s,c) => s + (+c.valor || 0), 0);
 }
 
+// ─── Consumo real de cola via leitura de tambor (SPEC §2.3) ───
+// Retorna { kgReal, m3Periodo, taxaReal } para o mês, ou null se sem leituras
+function consumoColaMes(mesRef) {
+  const leituras = state.leituras_tambor
+    .filter(t => t.data)
+    .sort((a,b) => a.data.localeCompare(b.data));
+  if (leituras.length < 2) return null;
+
+  // Encontrar leituras que enquadram o mês
+  const mesIni = mesRef + '-01';
+  const mesFim = mesRef + '-31';
+  // Última leitura antes ou no início do mês
+  const antes = leituras.filter(t => t.data <= mesIni);
+  const L1 = antes.length ? antes[antes.length - 1] : null;
+  // Primeira leitura no final do mês ou depois
+  const depois = leituras.filter(t => t.data >= mesFim);
+  const L2 = depois.length ? depois[0] : null;
+  // Também aceitar leituras dentro do mês
+  const noMes = leituras.filter(t => t.data >= mesIni && t.data <= mesFim);
+  const lFim = noMes.length ? noMes[noMes.length - 1] : L2;
+  const lIni = L1 || (noMes.length >= 2 ? noMes[0] : null);
+  if (!lIni || !lFim || lIni.id === lFim.id) return null;
+
+  // Compras de cola entre as duas leituras
+  const comprasEntre = comprasCat('cola')
+    .filter(c => c.data >= lIni.data && c.data <= lFim.data)
+    .reduce((s,c) => s + c.quantidade, 0);
+
+  const kgReal = (lIni.kg_remanescente||0) + comprasEntre - (lFim.kg_remanescente||0);
+  if (kgReal < 0) return null; // dados inconsistentes
+
+  // m³ aplainado entre as duas datas
+  const m3Periodo = state.pedidos
+    .filter(p => p.data_entrega && p.data_entrega >= lIni.data && p.data_entrega <= lFim.data)
+    .reduce((s,p) => s + m3Aplainado(p), 0);
+
+  const taxaReal = m3Periodo > 0 ? kgReal / m3Periodo : null;
+  return { kgReal, comprasEntre, kgIni: lIni.kg_remanescente, kgFim: lFim.kg_remanescente,
+           dataIni: lIni.data, dataFim: lFim.data, m3Periodo, taxaReal };
+}
+
+// ─── Reconciliação: bruto teórico (plaina) vs real (estoque) por mês ───
+function reconciliacaoMes(mesRef) {
+  const pedsMes = state.pedidos.filter(p => p.data_entrega && dateToMes(p.data_entrega) === mesRef);
+  if (!pedsMes.length) return null;
+
+  // Teórico (soma das fórmulas por pedido)
+  const m3BrutoTeorico = pedsMes.reduce((s,p) => s + m3BrutoPedido(p), 0);
+  const kgColaTeorico = pedsMes.reduce((s,p) => s + kgAdesivoPedido(p), 0);
+  const m3AplTotal = pedsMes.reduce((s,p) => s + m3Aplainado(p), 0);
+
+  // Real madeira (via apontamento de estoque)
+  const fR = fatorMes(mesRef);
+  const m3BrutoReal = fR ? fR.consumo : null;
+
+  // Real cola (via tambor)
+  const colaReal = consumoColaMes(mesRef);
+
+  // Gaps
+  const gapMad = (m3BrutoReal != null) ? m3BrutoReal - m3BrutoTeorico : null;
+  const gapMadPct = (gapMad != null && m3BrutoTeorico > 0) ? (gapMad / m3BrutoTeorico) * 100 : null;
+  const gapCola = (colaReal?.kgReal != null) ? colaReal.kgReal - kgColaTeorico : null;
+  const gapColaPct = (gapCola != null && kgColaTeorico > 0) ? (gapCola / kgColaTeorico) * 100 : null;
+
+  // Confiança: verde (<10%), amarelo (10-25%), vermelho (>25% ou dados faltando)
+  const temApt = fR != null;
+  const temTambor = colaReal != null;
+  const temFixoInd = totalCustosMensaisCamada(mesRef, 'fixo_industrial') > 0;
+  const temFixoGeral = totalCustosMensaisCamada(mesRef, 'fixo_geral') > 0;
+  const temFixo = temFixoInd || temFixoGeral;
+
+  let confianca = 'sem-dado';
+  if (temApt && temTambor && temFixo) {
+    const maxGap = Math.max(Math.abs(gapMadPct||0), Math.abs(gapColaPct||0));
+    confianca = maxGap < 10 ? 'solido' : maxGap < 25 ? 'parcial' : 'estimativa';
+  } else if (temApt || temTambor) {
+    confianca = 'parcial';
+  }
+
+  const faltando = [];
+  if (!temApt) faltando.push('apontamento estoque');
+  if (!temTambor) faltando.push('leitura tambor');
+  if (!temFixo) faltando.push('custos fixos');
+
+  return {
+    m3AplTotal, m3BrutoTeorico, m3BrutoReal, kgColaTeorico,
+    kgColaReal: colaReal?.kgReal ?? null,
+    taxaColaReal: colaReal?.taxaReal ?? null,
+    taxaColaTeorica: m3AplTotal > 0 ? kgColaTeorico / m3AplTotal : null,
+    gapMad, gapMadPct, gapCola, gapColaPct,
+    confianca, faltando, temApt, temTambor, temFixo
+  };
+}
+
 function mediaFixoGeralRolante(mesRef) {
   // Média dos últimos 3 meses com lançamento de fixo geral (inclui mesRef)
   const vals = [];
@@ -1113,11 +1207,13 @@ function balancaMes(mesRef) {
   const m3Ped = fR ? fR.m3Ped : pedsMes.reduce((s,p)=>s+m3Aplainado(p),0);
   const kgCons = pedsMes.reduce((s,p)=>s+kgAdesivoPedido(p),0);
   const travado = apt && pM3 ? (apt.m3_2a_linha+apt.m3_refilo)*pM3 : null;
+  const rec = reconciliacaoMes(mesRef);
   return { mesRef, entM3, entRS, adKg, adRS, kgCons, m3Ped, travado, custosFixoInd, custosFixoGeral,
     fator: fR?.fator, consumo: fR?.consumo, serragem: fR?.serragem,
     v2a: fR?.v2a, vRef: fR?.vRef,
     rendimento: fR&&fR.consumo>0 ? m3Ped/fR.consumo*100 : null,
-    pctSerr: fR&&fR.consumo>0 ? fR.serragem/fR.consumo*100 : null };
+    pctSerr: fR&&fR.consumo>0 ? fR.serragem/fR.consumo*100 : null,
+    rec };
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1727,6 +1823,26 @@ function renderMargens() {
 // ═══════════════════════════════════════════════════════
 // RENDER — BALANÇO
 // ═══════════════════════════════════════════════════════
+function confBadge(conf) {
+  const labels = { solido:'Confiável', parcial:'Parcial', estimativa:'Divergente', 'sem-dado':'Sem dados' };
+  const cls = { solido:'badge-green', parcial:'badge-amber', estimativa:'badge-red', 'sem-dado':'badge-gray' };
+  return `<span class="badge ${cls[conf]||'badge-gray'}" style="font-size:.68rem">${labels[conf]||conf}</span>`;
+}
+
+function gapBadge(val, pct) {
+  if (val == null) return '<span style="color:var(--muted)">—</span>';
+  const cls = Math.abs(pct) < 10 ? 'pos' : Math.abs(pct) < 25 ? '' : 'neg';
+  const sign = val >= 0 ? '+' : '';
+  return `<span class="${cls}" style="font-size:.78rem">${sign}${val.toFixed(3)} m³ (${sign}${pct.toFixed(1)}%)</span>`;
+}
+
+function gapBadgeKg(val, pct) {
+  if (val == null) return '<span style="color:var(--muted)">—</span>';
+  const cls = Math.abs(pct) < 10 ? 'pos' : Math.abs(pct) < 25 ? '' : 'neg';
+  const sign = val >= 0 ? '+' : '';
+  return `<span class="${cls}" style="font-size:.78rem">${sign}${val.toFixed(1)} kg (${sign}${pct.toFixed(1)}%)</span>`;
+}
+
 function renderBalanco() {
   const meses = allMeses();
   if (!meses.length) {
@@ -1735,11 +1851,40 @@ function renderBalanco() {
   }
   const cards = meses.slice().reverse().map(m => {
     const b = balancaMes(m);
+    const r = b.rec;
     const fatorBadge = b.fator!=null ? `<span class="badge badge-primary">${b.fator.toFixed(3)}</span>` : '<span class="badge badge-gray">—</span>';
     const rendBadge  = b.rendimento!=null ? `${b.rendimento.toFixed(1)}%` : '—';
     const serrBadge  = b.pctSerr!=null ? `${b.pctSerr.toFixed(1)}%` : '—';
+    const confTag = r ? confBadge(r.confianca) : confBadge('sem-dado');
+    const faltandoHtml = r && r.faltando.length ? `<div style="font-size:.72rem; color:var(--muted); margin-top:.3rem">Falta: ${r.faltando.join(', ')}</div>` : '';
+
+    // Reconciliação
+    let recHtml = '';
+    if (r) {
+      recHtml = `
+        <div style="margin-top:1rem; border-top:1px solid var(--border); padding-top:.8rem">
+          <div style="font-size:.68rem; font-weight:600; text-transform:uppercase; letter-spacing:.08em; color:var(--primary); margin-bottom:.5rem">Dupla Checagem</div>
+          <div style="display:grid; grid-template-columns:auto 1fr 1fr auto; gap:.2rem .8rem; font-size:.8rem; align-items:center">
+            <span></span><strong style="font-size:.68rem; color:var(--muted)">Teórico (pedido)</strong><strong style="font-size:.68rem; color:var(--muted)">Real (medido)</strong><strong style="font-size:.68rem; color:var(--muted)">Gap</strong>
+            <span style="color:var(--muted)">Madeira bruta</span>
+            <span class="mono">${m3f(r.m3BrutoTeorico)}</span>
+            <span class="mono">${r.m3BrutoReal!=null ? m3f(r.m3BrutoReal) : '<span style="color:var(--muted)">sem apontamento</span>'}</span>
+            <span>${gapBadge(r.gapMad, r.gapMadPct)}</span>
+            <span style="color:var(--muted)">Cola kg</span>
+            <span class="mono">${kgf(r.kgColaTeorico)}</span>
+            <span class="mono">${r.kgColaReal!=null ? kgf(r.kgColaReal) : '<span style="color:var(--muted)">sem leitura tambor</span>'}</span>
+            <span>${gapBadgeKg(r.gapCola, r.gapColaPct)}</span>
+            <span style="color:var(--muted)">Taxa cola</span>
+            <span class="mono">${r.taxaColaTeorica!=null ? r.taxaColaTeorica.toFixed(2)+' kg/m³' : '—'}</span>
+            <span class="mono">${r.taxaColaReal!=null ? r.taxaColaReal.toFixed(2)+' kg/m³' : '—'}</span>
+            <span></span>
+          </div>
+          ${faltandoHtml}
+        </div>`;
+    }
+
     return `<div class="card" style="margin-bottom:1rem">
-      <div class="card-head"><span class="card-title">${mesLabel(m)}</span>${fatorBadge}</div>
+      <div class="card-head"><span class="card-title">${mesLabel(m)}</span><div style="display:flex;gap:.4rem;align-items:center">${confTag}${fatorBadge}</div></div>
       <div class="card-body">
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem">
         <div>
@@ -1758,16 +1903,18 @@ function renderBalanco() {
           </dl>
         </div>
         <div>
-          <div style="font-size:.68rem; font-weight:600; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin-bottom:.4rem">Adesivo TLP 40</div>
+          <div style="font-size:.68rem; font-weight:600; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin-bottom:.4rem">Adesivo + Custos Fixos</div>
           <dl class="detail-box">
             <dt>Entradas kg</dt><dd>${kgf(b.adKg)}</dd>
             <dt>Entradas R$</dt><dd>${brl(b.adRS)}</dd>
-            <dt>Consumo kg (est.)</dt><dd>${kgf(b.kgCons)}</dd>
+            <dt>Consumo teórico kg</dt><dd>${kgf(b.kgCons)}</dd>
+            <dt>Consumo real kg</dt><dd>${r?.kgColaReal!=null ? kgf(r.kgColaReal) : '<span style="color:var(--muted)">sem leitura</span>'}</dd>
             <dt>Fixos industriais</dt><dd>${brl(b.custosFixoInd)}</dd>
-            <dt>Fixos gerais</dt><dd>${brl(b.custosFixoGeral)}</dd>
+            <dt>Fixos gerais (média)</dt><dd>${brl(b.custosFixoGeral)}</dd>
           </dl>
         </div>
       </div>
+      ${recHtml}
       </div></div>`;}).join('');
 
   document.getElementById('balanco-content').innerHTML = cards;
