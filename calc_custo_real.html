@@ -773,10 +773,22 @@ const FIXO_GERAL_CATS = {
   despesas_bancarias: 'Despesas bancárias'
 };
 
-const CUSTO_CATEGORIAS = { ...FIXO_INDUSTRIAL_CATS, ...FIXO_GERAL_CATS };
+const LEGACY_CUSTO_CATEGORIAS = {
+  energia: 'Energia',
+  colaboradores: 'Colaboradores',
+  materiais_producao: 'Materiais de produção',
+  maquinas_equipamentos: 'Máquinas/equipamentos',
+  outros: 'Outros'
+};
 
-function camadaAutoCat(cat) {
-  return FIXO_INDUSTRIAL_CATS[cat] ? 'fixo_industrial' : 'fixo_geral';
+const CUSTO_CATEGORIAS = { ...FIXO_INDUSTRIAL_CATS, ...FIXO_GERAL_CATS, ...LEGACY_CUSTO_CATEGORIAS };
+
+function camadaCusto(c) {
+  if (c?.camada) return c.camada;
+  if (c?.entra_industrial === true) return 'fixo_industrial';
+  if (c?.entra_industrial === false) return 'fixo_geral';
+  if (['colaboradores','energia','manutencao'].includes(c?.categoria)) return 'fixo_industrial';
+  return FIXO_INDUSTRIAL_CATS[c?.categoria] ? 'fixo_industrial' : 'fixo_geral';
 }
 const CAMADA_LABEL = { fixo_industrial:'Fixo Industrial', fixo_geral:'Fixo Geral' };
 function comprasCat(cat, ateDt) {
@@ -995,7 +1007,7 @@ function custosMensaisMes(mesRef) {
 function totalCustosMensaisCamada(mesRef, camada) {
   return custosMensaisMes(mesRef)
     .filter(c => {
-      const cc = c.camada || camadaAutoCat(c.categoria);
+      const cc = camadaCusto(c);
       return cc === camada;
     })
     .reduce((s,c) => s + (+c.valor || 0), 0);
@@ -1586,7 +1598,7 @@ function renderCustos() {
   const rows = [...state.custos_mensais]
     .sort((a,b)=>(b.mes_referencia||'').localeCompare(a.mes_referencia||''))
     .map(c => {
-      const cam = c.camada || camadaAutoCat(c.categoria);
+      const cam = camadaCusto(c);
       const camBadge = cam === 'fixo_industrial'
         ? '<span class="badge badge-green">Industrial</span>'
         : '<span class="badge badge-primary">Geral</span>';
@@ -2047,9 +2059,13 @@ function editCustoMensal(id) {
   if (!c) return;
   editId.custo = id;
   document.getElementById('cm-mes').value = c.mes_referencia || '';
-  const camada = c.camada || camadaAutoCat(c.categoria);
+  const camada = camadaCusto(c);
   document.getElementById('cm-camada').value = camada;
   updateCustoCategories();
+  if (c.categoria && !document.querySelector(`#cm-cat option[value="${c.categoria}"]`)) {
+    document.getElementById('cm-cat').insertAdjacentHTML('beforeend',
+      `<option value="${c.categoria}">${CUSTO_CATEGORIAS[c.categoria] || c.categoria}</option>`);
+  }
   document.getElementById('cm-cat').value = c.categoria || '';
   document.getElementById('cm-subcat').value = c.subcategoria || '';
   document.getElementById('cm-desc').value = c.descricao || '';
