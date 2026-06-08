@@ -361,8 +361,20 @@ tbody tr:hover { background: #f8f7f5; cursor: pointer; }
           <div class="fg"><label>Local da Obra</label><input type="text" id="p-local"></div>
           <div class="fg"><label>Espécie</label><input type="text" id="p-especie" value="Eucalipto" readonly style="background:#f8f7f5"></div>
           <div class="fg"><label>Data Entrega</label><input type="date" id="p-entrega"></div>
-          <div class="fg"><label>Valor Venda R$ *</label><input type="number" id="p-valor" step="0.01" min="0" required placeholder="0.00"></div>
+          <div class="fg"><label>Valor Venda MLC R$ *</label><input type="number" id="p-valor" step="0.01" min="0" required placeholder="0.00"></div>
           <div class="fg"><label>m³ Aplainado (calculado)</label><input class="computed" id="p-m3" readonly value="0.000 m³"></div>
+        </div>
+
+        <hr class="inline-sep">
+        <div style="display:flex; align-items:center; gap:.5rem; margin-bottom:.5rem">
+          <strong style="font-size:.8rem; color:var(--accent)">Revenda + Serviço</strong>
+          <span style="font-size:.72rem; color:var(--muted)">(S4S, forro, ferragens, mão de obra — fora do custo MLC/m³)</span>
+        </div>
+        <div class="form-grid">
+          <div class="fg"><label>Revenda R$ (venda)</label><input type="number" id="p-revenda-venda" step="0.01" min="0" placeholder="S4S, forro, ferragens..."></div>
+          <div class="fg"><label>Revenda R$ (custo)</label><input type="number" id="p-revenda-custo" step="0.01" min="0" placeholder="Custo de compra"></div>
+          <div class="fg"><label>Serviço R$ (venda)</label><input type="number" id="p-servico-venda" step="0.01" min="0" placeholder="Mão de obra cobrada"></div>
+          <div class="fg"><label>Serviço R$ (custo)</label><input type="number" id="p-servico-custo" step="0.01" min="0" placeholder="Custo da mão de obra"></div>
         </div>
         <div class="fg" style="margin-top:.6rem"><label>Observações</label><textarea id="p-obs" rows="2" style="resize:vertical"></textarea></div>
 
@@ -1137,22 +1149,15 @@ function custoPedido(pid) {
   const totalAplMes = state.pedidos.filter(q => q.data_entrega && dateToMes(q.data_entrega)===mes)
     .reduce((s,q) => s + m3Aplainado(q), 0);
 
-  // ─── CAMADA 1: Variáveis de produção ───
+  // ─── PRODUÇÃO: Variáveis ───
   const cM = pM3!=null ? pM3*m3B : null;
   const cA = pKg!=null ? pKg*kgAde : null;
 
-  // Frete + Terceiros: vínculo direto ao pedido
-  const cFrete = state.compras.filter(c => c.categoria==='frete' && c.pedido_vinculado===pid)
-    .reduce((s,c) => s+c.valor_total, 0);
+  // Terceiros: vínculo direto ou rateio
   const cTerceiros = state.compras.filter(c => c.categoria==='terceiros' && c.pedido_vinculado===pid)
-    .reduce((s,c) => s+c.valor_total, 0);
-
-  // Frete + Terceiros sem vínculo: rateio por m³ aplainado no mês
-  const freteSemVinc = state.compras.filter(c => c.categoria==='frete' && !c.pedido_vinculado && dateToMes(c.data)===mes)
     .reduce((s,c) => s+c.valor_total, 0);
   const tercSemVinc = state.compras.filter(c => c.categoria==='terceiros' && !c.pedido_vinculado && dateToMes(c.data)===mes)
     .reduce((s,c) => s+c.valor_total, 0);
-  const cFreteProp = totalAplMes > 0 ? (freteSemVinc / totalAplMes) * m3 : 0;
   const cTercProp = totalAplMes > 0 ? (tercSemVinc / totalAplMes) * m3 : 0;
 
   // Tratamento + Secagem: rateio por m³ bruto no mês
@@ -1169,25 +1174,57 @@ function custoPedido(pid) {
   const cEn = totalAplMes > 0 ? (enMes / totalAplMes) * m3 : 0;
   const cOut = totalAplMes > 0 ? (outMes / totalAplMes) * m3 : 0;
 
-  const cVar = (cM||0) + (cA||0) + cFrete + cFreteProp + cTerceiros + cTercProp + cTrat + cSec + cAcab + cEn + cOut;
+  const cVar = (cM||0) + (cA||0) + cTerceiros + cTercProp + cTrat + cSec + cAcab + cEn + cOut;
 
-  // ─── CAMADA 2: Fixos industriais ───
+  // ─── PRODUÇÃO: Fixos industriais ───
   const cmFixoInd = totalCustosMensaisCamada(mes, 'fixo_industrial');
   const cFixoInd = totalAplMes > 0 ? (cmFixoInd / totalAplMes) * m3 : 0;
 
-  // ─── CAMADA 3: Fixos gerais (média rolante últimos 3 meses) ───
+  // ─── PRODUÇÃO: Fixos gerais (média rolante últimos 3 meses) ───
   const fgMedia = mediaFixoGeralRolante(mes);
   const cFixoGeral = totalAplMes > 0 ? (fgMedia / totalAplMes) * m3 : 0;
 
-  // ─── Total ───
-  const cT = (cM!=null&&cA!=null) ? cVar + cFixoInd + cFixoGeral : null;
-  const mR = cT!=null ? p.valor_venda - cT : null;
-  const mP = (mR!=null&&p.valor_venda) ? mR/p.valor_venda*100 : null;
+  // ─── LOGÍSTICA (frete — fora do custo/m³) ───
+  const cFreteDir = state.compras.filter(c => c.categoria==='frete' && c.pedido_vinculado===pid)
+    .reduce((s,c) => s+c.valor_total, 0);
+  const freteSemVinc = state.compras.filter(c => c.categoria==='frete' && !c.pedido_vinculado && dateToMes(c.data)===mes)
+    .reduce((s,c) => s+c.valor_total, 0);
+  const cFreteProp = totalAplMes > 0 ? (freteSemVinc / totalAplMes) * m3 : 0;
+  const cLogistica = cFreteDir + cFreteProp;
+
+  // ─── REVENDA (S4S, forro, ferragens — markup) ───
+  const revendaVenda = +(p.revenda_venda)||0;
+  const revendaCusto = +(p.revenda_custo)||0;
+  const margemRevenda = revendaVenda - revendaCusto;
+
+  // ─── SERVIÇO (mão de obra) ───
+  const servicoVenda = +(p.servico_venda)||0;
+  const servicoCusto = +(p.servico_custo)||0;
+  const margemServico = servicoVenda - servicoCusto;
+
+  // ─── Custo produção MLC (sem frete, sem revenda, sem serviço) ───
+  const cProd = (cM!=null&&cA!=null) ? cVar + cFixoInd + cFixoGeral : null;
+
+  // ─── Total do pedido (produção + logística + revenda custo + serviço custo) ───
+  const cT = cProd!=null ? cProd + cLogistica + revendaCusto + servicoCusto : null;
+
+  // ─── Receita total e margem do pedido ───
+  const vendaTotal = p.valor_venda + revendaVenda + servicoVenda;
+  const mR = cT!=null ? vendaTotal - cT : null;
+  const mP = (mR!=null&&vendaTotal) ? mR/vendaTotal*100 : null;
+
+  // ─── Margem MLC pura (produção/m³) ───
+  const mRmlc = cProd!=null ? p.valor_venda - cProd : null;
+  const mPmlc = (mRmlc!=null&&p.valor_venda) ? mRmlc/p.valor_venda*100 : null;
+
   const taxaMedia = m3 > 0 ? kgAde/m3 : null;
   return { m3, m3B, m3Serr, pM3, pKg, kgAde, taxaMedia,
-    cM, cA, cFrete:cFrete+cFreteProp, cTerceiros:cTerceiros+cTercProp, cTrat, cSec, cAcab, cEn, cOut,
-    cVar, cFixoInd, cFixoGeral, cT, mR, mP,
-    ok: cT!=null,
+    cM, cA, cTerceiros:cTerceiros+cTercProp, cTrat, cSec, cAcab, cEn, cOut,
+    cVar, cFixoInd, cFixoGeral, cProd, cLogistica,
+    revendaVenda, revendaCusto, margemRevenda,
+    servicoVenda, servicoCusto, margemServico,
+    vendaTotal, cT, mR, mP, mRmlc, mPmlc,
+    ok: cProd!=null,
     av: { semM3Pool: pM3==null, semKgPool: pKg==null } };
 }
 
@@ -1740,73 +1777,67 @@ function renderMargens() {
 
   // KPIs summary
   const comCalculo = pedidos.filter(p => custoPedido(p.id)?.ok);
-  const totalVenda = pedidos.reduce((s,p)=>s+(+p.valor_venda||0),0);
-  const vendaCalculados = comCalculo.reduce((s,p)=>s+(+p.valor_venda||0),0);
-  const totalCusto = comCalculo.reduce((s,p)=>{const c=custoPedido(p.id);return s+(c.cT||0);},0);
-  const totalMargem = comCalculo.length ? vendaCalculados - totalCusto : 0;
-  const margemPctMedia = comCalculo.length
-    ? comCalculo.reduce((s,p)=>{const c=custoPedido(p.id);return s+(c.mP||0);},0)/comCalculo.length : null;
-
-  const kpis = `
-    <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(170px,1fr)); gap:.8rem; margin-bottom:1rem">
-      <div class="kpi"><div class="kpi-label">Total Faturado</div><div class="kpi-value" style="font-size:1rem">${brl(totalVenda)}</div></div>
-      <div class="kpi"><div class="kpi-label">Total Custo</div><div class="kpi-value" style="font-size:1rem">${comCalculo.length?brl(totalCusto):'—'}</div><div class="kpi-sub">${comCalculo.length} pedido(s) calculado(s)</div></div>
-      <div class="kpi"><div class="kpi-label">Margem Total R$</div><div class="kpi-value" style="font-size:1rem; color:${totalMargem>=0?'var(--green-mid)':'var(--red)'}">${comCalculo.length?brl(totalMargem):'—'}</div></div>
-      <div class="kpi"><div class="kpi-label">Margem % Média</div><div class="kpi-value" style="color:${(margemPctMedia||0)>=0?'var(--green-mid)':'var(--red)'}">${pctf(margemPctMedia)}</div></div>
-    </div>`;
-
-  // Totais por camada
   const totalVar = comCalculo.reduce((s,p)=>{const c=custoPedido(p.id);return s+(c.cVar||0);},0);
   const totalFixoInd = comCalculo.reduce((s,p)=>{const c=custoPedido(p.id);return s+(c.cFixoInd||0);},0);
   const totalFixoGeral = comCalculo.reduce((s,p)=>{const c=custoPedido(p.id);return s+(c.cFixoGeral||0);},0);
+  const totalProd = comCalculo.reduce((s,p)=>{const c=custoPedido(p.id);return s+(c.cProd||0);},0);
+  const totalLogistica = comCalculo.reduce((s,p)=>{const c=custoPedido(p.id);return s+(c.cLogistica||0);},0);
   const totalM3Calc = comCalculo.reduce((s,p)=>{const c=custoPedido(p.id);return s+(c.m3||0);},0);
+  const totalVendaCalc = comCalculo.reduce((s,p)=>{const c=custoPedido(p.id);return s+(c.vendaTotal||0);},0);
+  const totalCusto = comCalculo.reduce((s,p)=>{const c=custoPedido(p.id);return s+(c.cT||0);},0);
+  const totalMargem = totalVendaCalc - totalCusto;
+  const margemPctMedia = comCalculo.length
+    ? comCalculo.reduce((s,p)=>{const c=custoPedido(p.id);return s+(c.mP||0);},0)/comCalculo.length : null;
 
-  const kpisCamada = comCalculo.length ? `
-    <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(170px,1fr)); gap:.8rem; margin-bottom:1rem">
-      <div class="kpi"><div class="kpi-label">Variável / m³</div><div class="kpi-value" style="font-size:1rem">${totalM3Calc>0?brl(totalVar/totalM3Calc):'—'}</div><div class="kpi-sub">${brl(totalVar)} total</div></div>
-      <div class="kpi"><div class="kpi-label">Fixo Industrial / m³</div><div class="kpi-value" style="font-size:1rem">${totalM3Calc>0?brl(totalFixoInd/totalM3Calc):'—'}</div><div class="kpi-sub">${brl(totalFixoInd)} total</div></div>
-      <div class="kpi"><div class="kpi-label">Fixo Geral / m³</div><div class="kpi-value" style="font-size:1rem">${totalM3Calc>0?brl(totalFixoGeral/totalM3Calc):'—'}</div><div class="kpi-sub">${brl(totalFixoGeral)} total</div></div>
-      <div class="kpi" style="border-top-color:var(--accent)"><div class="kpi-label">Custo Real Total / m³</div><div class="kpi-value" style="font-size:1rem">${totalM3Calc>0?brl(totalCusto/totalM3Calc):'—'}</div><div class="kpi-sub">${brl(totalCusto)} total</div></div>
+  const kpis = comCalculo.length ? `
+    <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:.8rem; margin-bottom:1rem">
+      <div class="kpi"><div class="kpi-label">Variável / m³</div><div class="kpi-value" style="font-size:1rem">${totalM3Calc>0?brl(totalVar/totalM3Calc):'—'}</div></div>
+      <div class="kpi"><div class="kpi-label">Fixo Ind. / m³</div><div class="kpi-value" style="font-size:1rem">${totalM3Calc>0?brl(totalFixoInd/totalM3Calc):'—'}</div></div>
+      <div class="kpi"><div class="kpi-label">Fixo Geral / m³</div><div class="kpi-value" style="font-size:1rem">${totalM3Calc>0?brl(totalFixoGeral/totalM3Calc):'—'}</div></div>
+      <div class="kpi" style="border-top-color:var(--accent)"><div class="kpi-label">Custo Produção / m³</div><div class="kpi-value" style="font-size:1rem">${totalM3Calc>0?brl(totalProd/totalM3Calc):'—'}</div></div>
+      <div class="kpi"><div class="kpi-label">Logística total</div><div class="kpi-value" style="font-size:1rem">${brl(totalLogistica)}</div><div class="kpi-sub">Fora do custo/m³</div></div>
+      <div class="kpi" style="border-top-color:${totalMargem>=0?'var(--green-mid)':'var(--red)'}"><div class="kpi-label">Margem geral</div><div class="kpi-value" style="font-size:1rem; color:${totalMargem>=0?'var(--green-mid)':'var(--red)'}">${pctf(totalVendaCalc>0?totalMargem/totalVendaCalc*100:null)}</div><div class="kpi-sub">${brl(totalMargem)} em ${totalM3Calc.toFixed(1)} m³</div></div>
     </div>` : '';
 
   const rows = pedidos.map(p => {
     const c = custoPedido(p.id);
     if (!c) return `<tr onclick="editPedido('${p.id}')"><td>${p.orcamento}</td><td>${p.cliente}</td><td>${fmtDate(p.data_entrega)}</td>
-      <td colspan="8" style="color:var(--muted); font-size:.78rem">Sem data de entrega</td></tr>`;
+      <td colspan="7" style="color:var(--muted); font-size:.78rem">Sem data de entrega</td></tr>`;
     const avs = [];
     if (c.av.semM3Pool) avs.push('sem pool madeira');
     if (c.av.semKgPool) avs.push('sem pool adesivo');
-    const varStr = c.cVar!=null ? brl(c.cVar) : '—';
-    const fixIndStr = c.cFixoInd ? brl(c.cFixoInd) : '—';
-    const fixGeralStr = c.cFixoGeral ? brl(c.cFixoGeral) : '—';
-    const totalStr = c.cT!=null ? brl(c.cT) : `<span style="color:var(--muted);font-size:.75rem">${avs.join(', ')}</span>`;
+    const prodStr = c.cProd!=null ? brl(c.cProd) : `<span style="color:var(--muted);font-size:.75rem">${avs.join(', ')}</span>`;
+    const extras = [];
+    if (c.cLogistica > 0) extras.push('frete ' + brl(c.cLogistica));
+    if (c.revendaVenda > 0) extras.push('revenda ' + brl(c.margemRevenda));
+    if (c.servicoVenda > 0) extras.push('serviço ' + brl(c.margemServico));
+    const extrasStr = extras.length ? `<br><span style="color:var(--muted);font-size:.7rem">${extras.join(' · ')}</span>` : '';
     return `<tr onclick="editPedido('${p.id}')">
       <td>${p.orcamento}</td>
       <td><strong>${p.cliente}</strong></td>
       <td>${fmtDate(p.data_entrega)}</td>
       <td class="mono">${m3f(c.m3)}</td>
-      <td class="mono">${brl(p.valor_venda)}</td>
-      <td class="mono" style="font-size:.78rem">${varStr}</td>
-      <td class="mono" style="font-size:.78rem">${fixIndStr}</td>
-      <td class="mono" style="font-size:.78rem">${fixGeralStr}</td>
-      <td class="mono" style="font-size:.78rem">${totalStr}</td>
+      <td class="mono">${brl(c.vendaTotal)}</td>
+      <td class="mono" style="font-size:.78rem">${prodStr}${extrasStr}</td>
+      <td class="mono" style="font-size:.78rem">${c.cProd!=null&&c.m3>0?brl(c.cProd/c.m3):''}</td>
+      <td>${c.mPmlc!=null?`<span class="badge ${c.mPmlc>=0?'badge-green':'badge-red'}">${pctf(c.mPmlc)}</span>`:'—'}</td>
       <td class="mono ${c.mR!=null?(c.mR>=0?'pos':'neg'):''}">${c.mR!=null?brl(c.mR):'—'}</td>
       <td>${c.mP!=null?`<span class="badge ${c.mP>=0?'badge-green':'badge-red'}">${pctf(c.mP)}</span>`:'—'}</td>
     </tr>`;}).join('');
 
-  // Totals row (only for calculated pedidos)
+  // Totals row
   const totalRow = comCalculo.length ? `
     <tr style="border-top:2px solid var(--border); font-weight:600; background:#f8f7f5">
-      <td colspan="5" style="text-align:right; font-size:.75rem; color:var(--muted)">Total (${comCalculo.length} calculado${comCalculo.length>1?'s':''})</td>
-      <td class="mono">${brl(totalVar)}</td>
-      <td class="mono">${brl(totalFixoInd)}</td>
-      <td class="mono">${brl(totalFixoGeral)}</td>
+      <td colspan="4" style="text-align:right; font-size:.75rem; color:var(--muted)">Total (${comCalculo.length})</td>
+      <td class="mono">${brl(totalVendaCalc)}</td>
       <td class="mono">${brl(totalCusto)}</td>
+      <td class="mono">${totalM3Calc>0?brl(totalProd/totalM3Calc):''}</td>
+      <td></td>
       <td class="mono ${totalMargem>=0?'pos':'neg'}">${brl(totalMargem)}</td>
-      <td><span class="badge ${(margemPctMedia||0)>=0?'badge-green':'badge-red'}">${pctf(margemPctMedia)}</span></td>
+      <td><span class="badge ${totalMargem>=0?'badge-green':'badge-red'}">${pctf(totalVendaCalc>0?totalMargem/totalVendaCalc*100:null)}</span></td>
     </tr>` : '';
 
-  document.getElementById('margens-content').innerHTML = kpis + kpisCamada + `
+  document.getElementById('margens-content').innerHTML = kpis + `
     <div class="card">
       <div class="card-head">
         <span class="card-title">Detalhes por Pedido</span>
@@ -1814,7 +1845,7 @@ function renderMargens() {
       </div>
       <div class="card-body" style="padding-top:0">
       <div class="tbl-wrap"><table>
-      <thead><tr><th>Orç.</th><th>Cliente</th><th>Entrega</th><th>m³</th><th>Venda</th><th>Variável</th><th>Fixo Ind.</th><th>Fixo Geral</th><th>Custo Total</th><th>Margem R$</th><th>Margem %</th></tr></thead>
+      <thead><tr><th>Orç.</th><th>Cliente</th><th>Entrega</th><th>m³</th><th>Venda Total</th><th>Custo Total</th><th>Produção/m³</th><th>Margem MLC</th><th>Margem R$</th><th>Margem %</th></tr></thead>
       <tbody>${rows}</tbody>
       ${totalRow ? '<tfoot>'+totalRow+'</tfoot>' : ''}
       </table></div></div></div>`;
@@ -2299,6 +2330,10 @@ function savePedido(e) {
     especie: document.getElementById('p-especie').value,
     data_entrega: document.getElementById('p-entrega').value || null,
     valor_venda: parseFloat(document.getElementById('p-valor').value)||0,
+    revenda_venda: parseFloat(document.getElementById('p-revenda-venda').value)||0,
+    revenda_custo: parseFloat(document.getElementById('p-revenda-custo').value)||0,
+    servico_venda: parseFloat(document.getElementById('p-servico-venda').value)||0,
+    servico_custo: parseFloat(document.getElementById('p-servico-custo').value)||0,
     obs: document.getElementById('p-obs').value.trim(),
     itens: formItens.map(it => ({ id:it.id, desc:it.desc, qtd:it.qtd, base_mm:it.base_mm, altura_mm:it.altura_mm, comp_mm:it.comp_mm, ...(it.m3_bruto_planilha ? {m3_bruto_planilha:it.m3_bruto_planilha} : {}), ...(it.m3_serragem_planilha ? {m3_serragem_planilha:it.m3_serragem_planilha} : {}) }))
   };
@@ -2327,6 +2362,10 @@ function editPedido(id) {
   document.getElementById('p-especie').value   = p.especie||'Eucalipto';
   document.getElementById('p-entrega').value   = p.data_entrega||'';
   document.getElementById('p-valor').value     = p.valor_venda;
+  document.getElementById('p-revenda-venda').value = p.revenda_venda||'';
+  document.getElementById('p-revenda-custo').value = p.revenda_custo||'';
+  document.getElementById('p-servico-venda').value = p.servico_venda||'';
+  document.getElementById('p-servico-custo').value = p.servico_custo||'';
   document.getElementById('p-obs').value       = p.obs||'';
   formItens = (p.itens||[]).map(it=>({...it}));
   renderItemsTbl();
