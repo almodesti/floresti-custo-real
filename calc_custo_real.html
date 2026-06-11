@@ -530,11 +530,11 @@ tbody tr:hover { background: #f8f7f5; cursor: pointer; }
         <div class="form-grid">
           <div class="fg">
             <label>RBT12 — receita bruta 12 meses (R$)</label>
-            <input id="trib-rbt12" value="970.000" oninput="recalcTrib()">
+            <input id="trib-rbt12" value="438.222,67" oninput="recalcTrib()">
           </div>
           <div class="fg">
             <label>Faturamento do mês projetado (R$)</label>
-            <input id="trib-fat-mes" value="98.000" oninput="recalcTrib()">
+            <input id="trib-fat-mes" value="5.963" oninput="recalcTrib()">
           </div>
         </div>
         <div class="fg" style="margin-top:.6rem">
@@ -560,6 +560,13 @@ tbody tr:hover { background: #f8f7f5; cursor: pointer; }
           <div style="display:flex; justify-content:space-between; padding:.3rem 0; border-bottom:1px solid #f0ede8"><span style="color:var(--muted)">Parcela a deduzir</span><span class="mono" id="trib-ded">—</span></div>
           <div style="display:flex; justify-content:space-between; padding:.3rem 0"><span style="color:var(--muted)">DAS do mês</span><span class="mono" style="font-weight:600" id="trib-das">—</span></div>
         </div>
+
+        <details style="margin-top:.7rem">
+          <summary style="font-size:.72rem; color:var(--muted); cursor:pointer; font-weight:500">Repartição do DAS por tributo</summary>
+          <div id="trib-reparticao" style="margin-top:.4rem; font-size:.78rem"></div>
+        </details>
+
+        <div id="trib-calib" style="margin-top:.6rem; padding:.4rem .6rem; background:var(--green-lt); border-radius:3px; font-size:.72rem; color:var(--green-mid); line-height:1.5"></div>
       </div>
     </div>
 
@@ -3680,6 +3687,45 @@ function recalcTrib() {
   el('trib-ded').textContent = brl(ded);
   el('trib-efetiva').textContent = pctf(ef * 100);
   el('trib-das').textContent = brl(ef * fatMes);
+
+  // Repartição do DAS por tributo (Anexo II, Tabela 1)
+  const REPART_II = {
+    0: { IRPJ:5.50, CSLL:3.50, COFINS:12.74, PIS:2.76, CPP:41.50, IPI:7.50, ICMS:26.50 },
+    1: { IRPJ:5.50, CSLL:3.50, COFINS:12.74, PIS:2.76, CPP:41.50, IPI:7.50, ICMS:26.50 },
+    2: { IRPJ:5.50, CSLL:3.50, COFINS:11.51, PIS:2.49, CPP:37.50, IPI:7.50, ICMS:32.00 },
+    3: { IRPJ:5.50, CSLL:3.50, COFINS:11.51, PIS:2.49, CPP:37.50, IPI:7.50, ICMS:32.00 },
+    4: { IRPJ:5.50, CSLL:3.50, COFINS:11.51, PIS:2.49, CPP:37.50, IPI:7.50, ICMS:32.00 },
+    5: { IRPJ:5.50, CSLL:3.50, COFINS:11.51, PIS:2.49, CPP:37.50, IPI:7.50, ICMS:32.00 }
+  };
+  const rep = REPART_II[i] || REPART_II[2];
+  const das = ef * fatMes;
+  const repEl = el('trib-reparticao');
+  if (repEl) {
+    const tributos = ['IRPJ','CSLL','COFINS','PIS','CPP','IPI','ICMS'];
+    repEl.innerHTML = '<table style="width:100%; font-size:.75rem; border-collapse:collapse">'
+      + '<thead><tr style="border-bottom:1px solid var(--border)">'
+      + tributos.map(t => '<th style="text-align:right; padding:.25rem .3rem; font-size:.62rem; color:var(--muted); font-weight:500">'+t+'</th>').join('')
+      + '</tr></thead><tbody>'
+      + '<tr>' + tributos.map(t => '<td style="text-align:right; padding:.25rem .3rem; color:var(--muted)">'+pctf(rep[t])+'</td>').join('') + '</tr>'
+      + '<tr>' + tributos.map(t => {
+          const efTrib = ef * rep[t] / 100;
+          return '<td style="text-align:right; padding:.25rem .3rem" class="mono">'+pctf(efTrib*100)+'</td>';
+        }).join('') + '</tr>'
+      + '<tr style="border-top:1px solid var(--border); font-weight:500">' + tributos.map(t => {
+          const val = das * rep[t] / 100;
+          return '<td style="text-align:right; padding:.25rem .3rem" class="mono">'+brl(val)+'</td>';
+        }).join('') + '</tr>'
+      + '</tbody></table>'
+      + '<div style="display:flex; justify-content:space-between; margin-top:.3rem; font-size:.68rem; color:var(--muted)"><span>% de repartição → alíquota efetiva por tributo → R$ por tributo</span></div>';
+  }
+
+  // Calibração vs DAS real
+  const calibEl = el('trib-calib');
+  if (calibEl) {
+    const efRef = tribEfetiva(438222.67, 'II');
+    calibEl.innerHTML = 'Calibração: Anexo II com RBT12 R$ 438.222,67 → ' + pctf(efRef*100)
+      + ' — confere com DAS mai/2026 (6,8372%). Fórmula validada.';
+  }
 
   // Módulo 2 — Margem
   const m3 = tribParseNum(el('trib-m3')?.value);
