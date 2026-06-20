@@ -1,0 +1,60 @@
+orcamento;cliente;local;data_entrega;valor_venda;descricao;qtd;base_mm;altura_mm;comp_mm
+1050;Elton e Emilli;;2026-06-06;42459.17;Pilar MLC;4;135;135;500
+1050;Elton e Emilli;;2026-06-06;42459.17;Pilar MLC;1;135;135;200
+1050;Elton e Emilli;;2026-06-06;42459.17;Pilar MLC;5;135;135;750
+1050;Elton e Emilli;;2026-06-06;42459.17;Pilar MLC;1;135;135;400
+1050;Elton e Emilli;;2026-06-06;42459.17;Pilar MLC;5;150;150;3000
+1050;Elton e Emilli;;2026-06-06;42459.17;Viga MLC 0 a 9m;1;135;260;2300
+1050;Elton e Emilli;;2026-06-06;42459.17;Viga MLC 0 a 9m;1;135;260;5000
+1050;Elton e Emilli;;2026-06-06;42459.17;Viga MLC 0 a 9m;3;135;260;5000
+1050;Elton e Emilli;;2026-06-06;42459.17;Viga MLC 0 a 9m;2;135;260;2700
+1050;Elton e Emilli;;2026-06-06;42459.17;Viga MLC 0 a 9m;3;135;260;3300
+1050;Elton e Emilli;;2026-06-06;42459.17;Viga MLC 0 a 9m;5;135;260;3500
+1050;Elton e Emilli;;2026-06-06;42459.17;Viga MLC 0 a 9m;2;135;260;3600
+1050;Elton e Emilli;;2026-06-06;42459.17;Peça Plainada MLC;27;30;200;1000
+1050;Elton e Emilli;;2026-06-06;42459.17;Peça Plainada MLC;8;30;170;1000
+1050;Elton e Emilli;;2026-06-06;42459.17;Travamento / Terça MLC;16;70;215;6000
+1050;Elton e Emilli;;2026-06-06;42459.17;Travamento / Terça MLC;3;70;215;4500
+1114;Eu Sou o Carpinteiro — Igaratá;Igaratá - SP;2026-06-06;134126.59;Viga MLC 0 a 9m;5;140;400;5700
+1114;Eu Sou o Carpinteiro — Igaratá;Igaratá - SP;2026-06-06;134126.59;Viga MLC 0 a 9m;1;140;400;6200
+1114;Eu Sou o Carpinteiro — Igaratá;Igaratá - SP;2026-06-06;134126.59;Viga MLC 0 a 9m;1;140;400;7200
+1114;Eu Sou o Carpinteiro — Igaratá;Igaratá - SP;2026-06-06;134126.59;Viga MLC 0 a 9m;1;140;400;5000
+1114;Eu Sou o Carpinteiro — Igaratá;Igaratá - SP;2026-06-06;134126.59;Viga MLC 0 a 9m;1;80;350;6200
+1114;Eu Sou o Carpinteiro — Igaratá;Igaratá - SP;2026-06-06;134126.59;Viga MLC 0 a 9m;1;80;350;6500
+1114;Eu Sou o Carpinteiro — Igaratá;Igaratá - SP;2026-06-06;134126.59;Viga MLC 0 a 9m;1;80;350;7000
+1114;Eu Sou o Carpinteiro — Igaratá;Igaratá - SP;2026-06-06;134126.59;Viga MLC 0 a 9m;7;80;350;5700
+1114;Eu Sou o Carpinteiro — Igaratá;Igaratá - SP;2026-06-06;134126.59;Viga MLC 0 a 9m;1;80;350;5600
+1114;Eu Sou o Carpinteiro — Igaratá;Igaratá - SP;2026-06-06;134126.59;Viga MLC 0 a 9m;1;80;350;5200
+1114;Eu Sou o Carpinteiro — Igaratá;Igaratá - SP;2026-06-06;134126.59;Viga MLC 0 a 9m;10;100;400;5500
+1114;Eu Sou o Carpinteiro — Igaratá;Igaratá - SP;2026-06-06;134126.59;Viga MLC 0 a 9m;5;100;250;5000
+1114;Eu Sou o Carpinteiro — Igaratá;Igaratá - SP;2026-06-06;134126.59;Pilar MLC;9;200;200;3700
+1114;Eu Sou o Carpinteiro — Igaratá;Igaratá - SP;2026-06-06;134126.59;Barrote MLC;2;30;250;6000
+1114;Eu Sou o Carpinteiro — Igaratá;Igaratá - SP;2026-06-06;134126.59;Barrote MLC;1;30;250;7500
+1114;Eu Sou o Carpinteiro — Igaratá;Igaratá - SP;2026-06-06;134126.59;Barrote MLC;6;30;250;5700
+1114;Eu Sou o Carpinteiro — Igaratá;Igaratá - SP;2026-06-06;134126.59;Barrote MLC;1;30;250;6500
+1114;Eu Sou o Carpinteiro — Igaratá;Igaratá - SP;2026-06-06;134126.59;Viga MLC 0 a 9m;1;80;600;6000
+1114;Eu Sou o Carpinteiro — Igaratá;Igaratá - SP;2026-06-06;134126.59;Viga MLC 0 a 9m;5;80;600;5700
+1114;Eu Sou o Carpinteiro — Igaratá;Igaratá - SP;2026-06-06;134126.59;Viga MLC 0 a 9m;2;80;600;8500
+1114;Eu Sou o Carpinteiro — Igaratá;Igaratá - SP;2026-06-06;134126.59;Viga MLC 0 a 9m;2;80;600;5000
+1114;Eu Sou o Carpinteiro — Igaratá;Igaratá - SP;2026-06-06;134126.59;Viga MLC 0 a 9m;2;80;600;5500
+1114;Eu Sou o Carpinteiro — Igaratá;Igaratá - SP;2026-06-06;134126.59;Viga MLC 0 a 9m;2;80;600;3000
+1114;Eu Sou o Carpinteiro — Igaratá;Igaratá - SP;2026-06-06;134126.59;Barrote MLC;9;60;200;5100
+1114;Eu Sou o Carpinteiro — Igaratá;Igaratá - SP;2026-06-06;134126.59;Barrote MLC;2;60;200;5000
+1114;Eu Sou o Carpinteiro — Igaratá;Igaratá - SP;2026-06-06;134126.59;Barrote MLC;2;60;200;4700
+1114;Eu Sou o Carpinteiro — Igaratá;Igaratá - SP;2026-06-06;134126.59;Barrote MLC;5;60;200;4500
+1114;Eu Sou o Carpinteiro — Igaratá;Igaratá - SP;2026-06-06;134126.59;Barrote MLC;4;60;200;4000
+1114;Eu Sou o Carpinteiro — Igaratá;Igaratá - SP;2026-06-06;134126.59;Barrote MLC;3;60;200;3700
+1114;Eu Sou o Carpinteiro — Igaratá;Igaratá - SP;2026-06-06;134126.59;Barrote MLC;5;60;200;3500
+1114;Eu Sou o Carpinteiro — Igaratá;Igaratá - SP;2026-06-06;134126.59;Barrote MLC;9;60;200;3000
+1114;Eu Sou o Carpinteiro — Igaratá;Igaratá - SP;2026-06-06;134126.59;Barrote MLC;4;60;200;6000
+1114;Eu Sou o Carpinteiro — Igaratá;Igaratá - SP;2026-06-06;134126.59;Barrote MLC;10;60;200;2300
+1114;Eu Sou o Carpinteiro — Igaratá;Igaratá - SP;2026-06-06;134126.59;Barrote MLC;19;50;200;5700
+1114;Eu Sou o Carpinteiro — Igaratá;Igaratá - SP;2026-06-06;134126.59;Barrote MLC;5;50;200;2500
+1114;Eu Sou o Carpinteiro — Igaratá;Igaratá - SP;2026-06-06;134126.59;Barrote MLC;8;50;200;3000
+1114;Eu Sou o Carpinteiro — Igaratá;Igaratá - SP;2026-06-06;134126.59;Barrote MLC;2;50;200;4000
+1114;Eu Sou o Carpinteiro — Igaratá;Igaratá - SP;2026-06-06;134126.59;Barrote MLC;1;50;200;3500
+1114;Eu Sou o Carpinteiro — Igaratá;Igaratá - SP;2026-06-06;134126.59;Peça Plainada MLC;150;40;40;1000
+1364;Eu Sou o Carpinteiro;Igaratá - SP;2026-06-21;20555;Viga MLC 9 a 16m;1;140;500;12500
+1364;Eu Sou o Carpinteiro;Igaratá - SP;2026-06-21;20555;Viga MLC 0 a 9m;1;100;500;4500
+1364;Eu Sou o Carpinteiro;Igaratá - SP;2026-06-21;20555;Viga MLC 0 a 9m;1;100;500;7000
+1364;Eu Sou o Carpinteiro;Igaratá - SP;2026-06-21;20555;Viga MLC 0 a 9m;2;100;500;8500
